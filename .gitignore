@@ -1,0 +1,4 @@
+.cmd
+env
+__pycache__
+*.gz

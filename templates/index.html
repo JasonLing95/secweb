@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Latest 13F Filings</h1>
+
+<!-- Pagination Info -->
+{% if pagination and pagination.total > 0 %}
+<div class="row mb-3">
+    <div class="col-md-6">
+        <p class="text-muted">
+            Showing {{ pagination.offset + 1 }} to
+            {{ pagination.offset + filings|length }} of
+            {{ pagination.total }} filings
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filings Table -->
+{% if filings and filings|length > 0 %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Company Name</th>
+                <th>CIK</th>
+                <th>Form Type</th>
+                <th>Accession Number</th>
+                <th>Filing Date</th>
+                <th>Reporting Period</th>
+                <th>Created At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for filing in filings %}
+            <tr>
+                <td>
+                    {% if filing.company_name %}
+                    <a href="{{ url_for('company_detail', cik=filing.cik_number) }}">
+                        {{ filing.company_name }}
+                    </a>
+                    {% else %}
+                    <span class="text-muted">Unknown Company</span>
+                    {% endif %}
+                </td>
+                <td>{{ filing.cik_number }}</td>
+                <td>
+                    <span class="badge bg-primary">{{ filing.form_type }}</span>
+                </td>
+                <td>
+                    <a href="{{ url_for('filing_by_accession', accession_number=filing.accession_number) }}">
+                        {{ filing.accession_number }}
+                    </a>
+                </td>
+                <td>{{ filing.filing_date }}</td>
+                <td>{{ filing.period_of_report }}</td>
+                <td>{{ filing.created_at | human_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination Controls -->
+{% if pagination and pagination.total > per_page %}
+<nav aria-label="Filings pagination">
+    <ul class="pagination justify-content-center">
+        <!-- Previous Page -->
+        <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('index', page=current_page-1, per_page=per_page) }}"
+                aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+        </li>
+
+        <!-- Page Numbers -->
+        {% set total_pages = (pagination.total + per_page - 1) // per_page %}
+        {% set start_page = max(1, current_page - 2) %}
+        {% set end_page = min(total_pages, start_page + 4) %}
+
+        {% for p in range(start_page, end_page + 1) %}
+        <li class="page-item {% if p == current_page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('index', page=p, per_page=per_page) }}">
+                {{ p }}
+            </a>
+        </li>
+        {% endfor %}
+
+        <!-- Next Page -->
+        <li class="page-item {% if not pagination.has_more %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('index', page=current_page+1, per_page=per_page) }}"
+                aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+<!-- Items per page selector -->
+<div class="d-flex justify-content-center mt-3">
+    <div class="btn-group" role="group">
+        <span class="me-2 align-self-center">Items per page:</span>
+        {% for count in [10, 25, 50, 100] %}
+        <a href="{{ url_for('index', page=1, per_page=count) }}"
+            class="btn btn-outline-primary {% if per_page == count %}active{% endif %}">
+            {{ count }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    No filings found.
+    {% if pagination and pagination.total == 0 %}
+    There are no filings in the database.
+    {% else %}
+    Try adjusting your search criteria.
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h1 class="card-title h3 mb-0">Filing Details for {{ filing.accession_number }}</h1>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>CIK:</strong> {{ filing.cik_number }}</p>
+                <p><strong>Filing Date:</strong> {{ filing.filing_date }}</p>
+                <p><strong>File Number:</strong> {{ filing.file_number }}</p>
+                <p><strong>File Directory:</strong> <a href="https://sec.gov/{{ filing.filing_directory }}"
+                        target="_blank">{{
+                        filing.filing_directory }}</a></p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Company Name:</strong>
+                    {% if filing.cik %}
+                    <a href="{{ url_for('company_detail', cik=filing.cik) }}">{{ filing.company_name
+                        }}</a>
+                    {% else %}
+                    {{ filing.company_name }}
+                    {% endif %}
+                </p>
+                <p><strong>Form Type:</strong> {{ filing.form_type }}</p>
+                <p><strong>Reporting Period:</strong> {{ filing.period_of_report }}</p>
+                <p><strong>Created At:</strong> {{ filing.created_at | human_date }}</p>
+                <p><strong>Updated At:</strong> {{ filing.updated_at | human_date }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2 class="mt-4 mb-3">Holdings</h2>
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Issuer Name</th>
+                <th>CUSIP</th>
+                <th>Title of Class</th>
+                <th>Value</th>
+                <th>Shares</th>
+                <th>Share Type</th>
+                <th>Investment Discretion</th>
+                <th>Put Call</th>
+                <th>Sole Voting</th>
+                <th>Shared Voting</th>
+                <th>None Voting</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for holding in holdings %}
+            <tr>
+                <td>{{ holding.issuer_name }}</td>
+                <td>{{ holding.cusip }}</td>
+                <td>{{ holding.title_of_class }}</td>
+                <td>{{ "${:,.0f}".format(holding.value) if holding.value else "N/A" }}</td>
+                <td>{{ "{:,.0f}".format(holding.shares_or_principal_amount) if holding.shares_or_principal_amount else
+                    "N/A" }}</td>
+                <td>{{ holding.shares_or_principal_type or "N/A" }}</td>
+                <td>{{ holding.investment_discretion or "N/A" }}</td>
+                <td>{{ holding.put_or_call or "N/A" }}</td>
+                <td>{{ holding.voting_authority_sole or "N/A" }}</td>
+                <td>{{ holding.voting_authority_shared or "N/A" }}</td>
+                <td>{{ holding.voting_authority_none or "N/A" }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="11" class="text-center">No holdings found for this filing.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{# Pagination Controls #}
+{% if pagination and pagination.total > pagination.limit %}
+<nav aria-label="Holdings pagination">
+    <ul class="pagination justify-content-center">
+        {# Previous Button #}
+        <li class="page-item {% if current_page <= 1 %}disabled{% endif %}">
+            <a class="page-link"
+                href="{{ url_for('filing_by_accession', accession_number=filing.accession_number, page=current_page-1, limit=pagination.limit) }}">
+                Previous
+            </a>
+        </li>
+
+        {% set total_pages = (pagination.total // pagination.limit) + (1 if pagination.total % pagination.limit != 0
+        else 0) %}
+        {% set page_range_start = [1, current_page - 2] | max %}
+        {% set page_range_end = [total_pages, current_page + 2] | min %}
+
+        {# First page and ellipsis #}
+        {% if page_range_start > 1 %}
+        <li class="page-item">
+            <a class="page-link"
+                href="{{ url_for('filing_by_accession', accession_number=filing.accession_number, page=1, limit=pagination.limit) }}">1</a>
+        </li>
+        {% if page_range_start > 2 %}
+        <li class="page-item disabled">
+            <span class="page-link">...</span>
+        </li>
+        {% endif %}
+        {% endif %}
+
+        {# Page buttons around current page #}
+        {% for p in range(page_range_start, page_range_end + 1) %}
+        <li class="page-item {% if p == current_page %}active{% endif %}">
+            <a class="page-link"
+                href="{{ url_for('filing_by_accession', accession_number=filing.accession_number, page=p, limit=pagination.limit) }}">
+                {{ p }}
+            </a>
+        </li>
+        {% endfor %}
+
+        {# Last page and ellipsis #}
+        {% if page_range_end < total_pages %} {% if page_range_end < total_pages - 1 %} <li class="page-item disabled">
+            <span class="page-link">...</span>
+            </li>
+            {% endif %}
+            <li class="page-item">
+                <a class="page-link"
+                    href="{{ url_for('filing_by_accession', accession_number=filing.accession_number, page=total_pages, limit=pagination.limit) }}">{{
+                    total_pages }}</a>
+            </li>
+            {% endif %}
+
+            {# Next Button #}
+            <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
+                <a class="page-link"
+                    href="{{ url_for('filing_by_accession', accession_number=filing.accession_number, page=current_page+1, limit=pagination.limit) }}">
+                    Next
+                </a>
+            </li>
+    </ul>
+</nav>
+
+<div class="text-center mt-2">
+    <small class="text-muted">
+        Showing {{ pagination.offset + 1 }} to {{ pagination.offset + holdings|length }} of {{ pagination.total }}
+        holdings
+    </small>
+</div>
+{% endif %}
+
+{% endblock %}

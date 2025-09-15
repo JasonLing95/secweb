@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="comparisons-container">
+    <div class="header-section">
+        <h1><i class="fas fa-file-contract"></i> Recent Filings Comparisons</h1>
+        <p>Review recently compared SEC filings side by side</p>
+    </div>
+
+    <div class="comparisons-table-container">
+        <table class="comparisons-table">
+            <thead>
+                <tr>
+                    <th>Compared Filings</th>
+                    <th>Comparison Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comparison in comparisons %}
+                <tr>
+                    <td>
+                        <div class="filing-pair">
+                            <a href="{{ url_for('filing_by_accession', accession_number=comparison.accession_number_1) }}"
+                                class="filing-link">
+                                <i class="fas fa-file-alt"></i>
+                                {{ comparison.accession_number_1 }}
+                            </a>
+                            <span class="vs-badge">VS</span>
+                            <a href="{{ url_for('filing_by_accession', accession_number=comparison.accession_number_2) }}"
+                                class="filing-link">
+                                <i class="fas fa-file-alt"></i>
+                                {{ comparison.accession_number_2 }}
+                            </a>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="date-badge">{{ comparison.created_at | human_date }}</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="no-comparisons">
+                        <i class="fas fa-inbox"></i>
+                        <p>No recent comparisons found.</p>
+                        <a href="{{ url_for('index') }}" class="btn-primary">Start Comparing</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .comparisons-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .header-section {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .header-section h1 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+
+    .header-section p {
+        color: #7f8c8d;
+        font-size: 1.1em;
+    }
+
+    .comparisons-table-container {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .comparisons-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .comparisons-table th {
+        background-color: #3498db;
+        color: white;
+        padding: 16px 20px;
+        text-align: left;
+        font-weight: 500;
+    }
+
+    .comparisons-table td {
+        padding: 20px;
+        border-bottom: 1px solid #ecf0f1;
+    }
+
+    .comparisons-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .comparisons-table tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .filing-pair {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .filing-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        color: #2980b9;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .filing-link:hover {
+        background-color: #e8f4fc;
+        text-decoration: underline;
+    }
+
+    .vs-badge {
+        background-color: #e74c3c;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+    }
+
+    .date-badge {
+        background-color: #ecf0f1;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-weight: 500;
+        color: #2c3e50;
+    }
+
+    .btn-view-comparison {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background-color: #2ecc71;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.9em;
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-view-comparison:hover {
+        background-color: #27ae60;
+    }
+
+    .no-comparisons {
+        text-align: center;
+        padding: 40px !important;
+        color: #7f8c8d;
+    }
+
+    .no-comparisons i {
+        font-size: 3em;
+        margin-bottom: 15px;
+        color: #bdc3c7;
+    }
+
+    .no-comparisons p {
+        margin-bottom: 20px;
+    }
+
+    .btn-primary {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #2980b9;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+
+        .comparisons-table th,
+        .comparisons-table td {
+            padding: 12px 10px;
+        }
+
+        .filing-pair {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .comparisons-table {
+            font-size: 0.9em;
+        }
+    }
+</style>
+
+<!-- Include Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %}
