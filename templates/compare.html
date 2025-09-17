@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Compare 13F Filings</h1>
+<h1>Comparison Page</h1>
 
 {% if filing_swapped %}
 <div class="alert alert-info alert-dismissible fade show" role="alert">
@@ -11,75 +11,223 @@
 </div>
 {% endif %}
 
-<form id="compare-form" class="row g-3 mb-4" action="{{ url_for('compare') }}" method="GET">
-    <div class="col-md-5">
-        <label for="prev" class="form-label">Previous Filing Accession Number</label>
-        <input type="text" class="form-control" id="prev" name="prev" value="{{ prev_accession }}" required>
-    </div>
-    <div class="col-md-5">
-        <label for="latest" class="form-label">Latest Filing Accession Number</label>
-        <input type="text" class="form-control" id="latest" name="latest" value="{{ latest_accession }}" required>
-    </div>
-    <div class="col-md-2 d-flex align-items-end">
-        <button type="submit" class="btn btn-primary">Compare</button>
-    </div>
-</form>
-
 {% if comparison %}
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">Comparison Summary</h5>
+        <h5 class="mb-0">CIK {{ comparison.metadata.cik }}</h5>
     </div>
     <div class="card-body">
         <div class="row">
             <div class="col-md-6">
                 <h6>Previous Filing</h6>
-                <p><strong>Accession:</strong> {{ comparison.metadata.previous_filing.accession_number }}<br>
+                <p><strong>Accession:</strong> <a target="_blank"
+                        href="{{ url_for('filing_by_accession', accession_number=comparison.metadata.previous_filing.accession_number) }}">{{
+                        comparison.metadata.previous_filing.accession_number }}</a><br>
                     <strong>Filing Date:</strong> {{ comparison.metadata.previous_filing.filing_date }}<br>
                     <strong>Reporting Period:</strong> {{ comparison.metadata.previous_filing.period_of_report }}<br>
-                    <strong>Form Type:</strong> {{ comparison.metadata.previous_filing.form_type }}
+                    <strong>Form Type:</strong> {{ comparison.metadata.previous_filing.form_type }}<br>
+                    <strong>Form Directory:</strong> <a
+                        href="https://www.sec.gov{{ comparison.metadata.previous_filing.filing_directory }}"
+                        target="_blank">{{ comparison.metadata.previous_filing.filing_directory }}</a>
                 </p>
             </div>
             <div class="col-md-6">
                 <h6>Latest Filing</h6>
-                <p><strong>Accession:</strong> {{ comparison.metadata.latest_filing.accession_number }}<br>
+                <p><strong>Accession:</strong> <a target="_blank"
+                        href="{{ url_for('filing_by_accession', accession_number=comparison.metadata.latest_filing.accession_number) }}">{{
+                        comparison.metadata.latest_filing.accession_number }}</a><br>
                     <strong>Filing Date:</strong> {{ comparison.metadata.latest_filing.filing_date }}<br>
                     <strong>Reporting Period:</strong> {{ comparison.metadata.latest_filing.period_of_report }}<br>
-                    <strong>Form Type:</strong> {{ comparison.metadata.latest_filing.form_type }}
+                    <strong>Form Type:</strong> {{ comparison.metadata.latest_filing.form_type }}<br>
+                    <strong>Form Directory:</strong> <a
+                        href="https://www.sec.gov{{ comparison.metadata.latest_filing.filing_directory }}"
+                        target="_blank">{{ comparison.metadata.latest_filing.filing_directory }}</a>
                 </p>
             </div>
         </div>
-
         <div class="row">
+            <p><a target="_blank" href="{{ url_for('company_detail', cik=comparison.metadata.cik) }}">Filing History</a>
+            </p>
+        </div>
+
+        <div class="row mx-1">
             <h3>AI Summary</h3>
-            <!-- <p>{{ comparison.metadata.ai_summary }}</p> -->
             <div id="ai-summary-container" class="my-3 p-3 border rounded">Loading AI Summary...</div>
         </div>
 
-        <div class="row mt-3">
-            {% for key, value in comparison.metadata.summary.items() %}
-            <div class="col-sm-6 col-md-4 col-lg-2 mb-2">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ value }}</h5>
-                        <p class="card-text text-muted">{{ key|replace('_', ' ')|title }}</p>
+        <!-- Top 5 START  -->
+        {% if comparison.holdings %}
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
+                data-bs-toggle="collapse" href="#top5Collapse" role="button" aria-expanded="true"
+                aria-controls="top5Collapse" style="cursor: pointer;">
+                <h5 class="mb-0">Top 5 Holdings by Value</h5>
+                <span class="badge bg-light text-dark">Click to collapse/expand</span>
+            </div>
+            <div class="collapse show" id="top5Collapse">
+                <div class="card-body">
+                    {% if comparison.holdings.new_holdings.top_5 %}
+                    <h6>Top 5 New Common Stock</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Issuer Name</th>
+                                    <th>Shares</th>
+                                    <th>Value ($)</th>
+                                    <th data-type="numeric">Share Price ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for holding in comparison.holdings.new_holdings.top_5 %}
+                                <tr>
+                                    <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                            target="_blank">{{holding.issuer_name_clean}}</a></td>
+                                    <td>{{ holding.total_shares_latest | format_number }}</td>
+                                    <td>${{ holding.total_value_latest | format_number }}</td>
+                                    <td>{{ holding.per_share_price_latest }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
+                    {% endif %}
+
+                    {% if comparison.holdings.closed_positions %}
+                    <h6>Top 5 Closed Common Stock</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Issuer Name</th>
+                                    <th>Shares</th>
+                                    <th>Value ($)</th>
+                                    <th data-type="numeric">Share Price ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for holding in comparison.holdings.closed_positions.top_5 %}
+                                <tr>
+                                    <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean_prev }} stock price"
+                                            target="_blank">{{holding.issuer_name_clean_prev}}</a></td>
+                                    <td>{{ holding.total_shares_prev | format_number }}</td>
+                                    <td>${{ holding.total_value_prev | format_number }}</td>
+                                    <td>{{ holding.per_share_price_prev }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if comparison.holdings.increased_holdings %}
+                    <h6>Top 5 Increased Common Stock</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Issuer Name</th>
+                                    <th data-type="numeric">Previous Shares Amount</th>
+                                    <th data-type="numeric">Latest Shares Amount</th>
+                                    <th data-type="numeric">Previous Value ($)</th>
+                                    <th data-type="numeric">Latest Value ($)</th>
+                                    <th data-type="numeric">Previous Share Price ($)</th>
+                                    <th data-type="numeric">Latest Share Price ($)</th>
+                                    <th data-type="numeric">Change (Shares Amount)</th>
+                                    <th data-type="numeric">% Change (Shares Amount)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for holding in comparison.holdings.increased_holdings.top_5 %}
+                                <tr>
+                                    <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                            target="_blank">{{holding.issuer_name_clean}}</a></td>
+                                    <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
+                                    <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
+                                    <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
+                                    <td>{{ (holding.total_value_latest | default(0)) | format_number }}</td>
+                                    <td>{{ holding.per_share_price_prev }}</td>
+                                    <td>{{ holding.per_share_price_latest }}</td>
+                                    <td class="text-success">+{{ holding.change_in_share | default(0) | format_number
+                                        }}
+                                    </td>
+                                    <td class="text-success">+{{ holding.percent_change | default(0) | safe_round(2) }}%
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if comparison.holdings.decreased_holdings %}
+                    <h6>Top 5 Decreased Common Stock</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Issuer Name</th>
+                                    <th data-type="numeric">Previous Shares Amount</th>
+                                    <th data-type="numeric">Latest Shares Amount</th>
+                                    <th data-type="numeric">Previous Value ($)</th>
+                                    <th data-type="numeric">Latest Value ($)</th>
+                                    <th data-type="numeric">Previous Share Price ($)</th>
+                                    <th data-type="numeric">Latest Share Price ($)</th>
+                                    <th data-type="numeric">Change (Shares Amount)</th>
+                                    <th data-type="numeric">% Change (Shares Amount)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for holding in comparison.holdings.decreased_holdings.top_5 %}
+                                <tr>
+                                    <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                            target="_blank">{{holding.issuer_name_clean}}</a></td>
+                                    <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
+                                    <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
+                                    <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
+                                    <td>{{ (holding.total_value_latest | default(0)) | format_number }}</td>
+                                    <td>{{ holding.per_share_price_prev }}</td>
+                                    <td>{{ holding.per_share_price_latest }}</td>
+                                    <td class="text-danger">{{ holding.change_in_share | default(0) | format_number }}
+                                    </td>
+                                    <td class="text-danger">{{ holding.percent_change | default(0) | round(2) }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
-            {% endfor %}
         </div>
+    </div>
+    {% endif %}
+
+    <!-- Top 5 END  -->
+
+    <div class="row mt-3 mx-1">
+        {% for key, value in comparison.metadata.summary.items() %}
+        <div class="col-sm-6 col-md-4 col-lg-2 mb-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{ value }}</h5>
+                    <p class="card-text text-muted">{{ key|replace('_', ' ')|title }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
 
 <!-- New Holdings Table -->
-{% if comparison.holdings.new_holdings %}
+{% if comparison.holdings.new_holdings.common_stock %}
 <div class="card mb-4">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#newHoldingsCollapse" role="button" aria-expanded="true"
         aria-controls="newHoldingsCollapse" style="cursor: pointer;">
         <h5 class="mb-0">
             <i class="fas fa-chevron-down me-2"></i>
-            New Holdings ({{ comparison.holdings.new_holdings|length }})
+            New Holdings - Common Stock ({{ comparison.holdings.new_holdings.common_stock|length }})
         </h5>
         <span class="badge bg-light text-dark">Click to collapse/expand</span>
     </div>
@@ -90,16 +238,60 @@
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
-                            <th data-type="numeric">Shares (Latest)</th>
-                            <th data-type="numeric">Value</th>
+                            <th data-type="numeric">Shares Amount (Latest)</th>
+                            <th data-type="numeric">Value ($)</th>
+                            <th data-type="numeric">Share Price ($)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for holding in comparison.holdings.new_holdings %}
+                        {% for holding in comparison.holdings.new_holdings.common_stock %}
                         <tr>
-                            <td>{{ holding.issuer_name_clean }}</td>
+                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                    target="_blank">{{holding.issuer_name_clean}}</a></td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
-                            <td>${{ (holding.total_value_latest) | format_number }}</td>
+                            <td>{{ (holding.total_value_latest) | format_number }}</td>
+                            <td>{{ holding.per_share_price_latest }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if comparison.holdings.new_holdings.other_securities %}
+<div class="card mb-4">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center"
+        data-bs-toggle="collapse" href="#newHoldingsOtherCollapse" role="button" aria-expanded="true"
+        aria-controls="newHoldingsOtherCollapse" style="cursor: pointer;">
+        <h5 class="mb-0">
+            <i class="fas fa-chevron-down me-2"></i>
+            New Holdings - Other Securities ({{ comparison.holdings.new_holdings.other_securities|length }})
+        </h5>
+        <span class="badge bg-light text-dark">Click to collapse/expand</span>
+    </div>
+    <div class="collapse show" id="newHoldingsOtherCollapse">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="newHoldingsOtherTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th data-type="string">Issuer Name</th>
+                            <th data-type="numeric">Units Amount (Latest)</th>
+                            <th data-type="numeric">Value ($)</th>
+                            <!-- <th data-type="numeric">Share Price ($)</th> -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for holding in comparison.holdings.new_holdings.other_securities %}
+                        <tr>
+                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                    target="_blank">{{holding.issuer_name_clean}}</a></td>
+                            <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
+                            <td>{{ (holding.total_value_latest) | format_number }}</td>
+                            <!-- <td>{{ holding.per_share_price_latest }}</td> -->
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -111,14 +303,14 @@
 {% endif %}
 
 <!-- Closed Positions Table -->
-{% if comparison.holdings.closed_positions %}
+{% if comparison.holdings.closed_positions.common_stock %}
 <div class="card mb-4">
     <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#closedPositionsCollapse" role="button" aria-expanded="true"
         aria-controls="closedPositionsCollapse" style="cursor: pointer;">
         <h5 class="mb-0">
             <i class="fas fa-chevron-down me-2"></i>
-            Closed Positions ({{ comparison.holdings.closed_positions|length }})
+            Closed Positions - Common Stock ({{ comparison.holdings.closed_positions.common_stock|length }})
         </h5>
         <span class="badge bg-light text-dark">Click to collapse/expand</span>
     </div>
@@ -129,16 +321,62 @@
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
-                            <th data-type="numeric">Shares (Previous)</th>
-                            <th data-type="numeric">Value</th>
+                            <th data-type="numeric">Shares Amount (Previous)</th>
+                            <th data-type="numeric">Value ($)</th>
+                            <th data-type="numeric">Share Price ($)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for holding in comparison.holdings.closed_positions %}
+                        {% for holding in comparison.holdings.closed_positions.common_stock %}
                         <tr>
-                            <td>{{ holding.issuer_name_clean_prev }}</td>
+                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean_prev }} stock price"
+                                    target="_blank">{{
+                                    holding.issuer_name_clean_prev }}</a></td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
-                            <td>${{ (holding.total_value_prev) | format_number }}</td>
+                            <td>{{ (holding.total_value_prev) | format_number }}</td>
+                            <td>{{ holding.per_share_price_prev }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if comparison.holdings.closed_positions.other_securities %}
+<div class="card mb-4">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center"
+        data-bs-toggle="collapse" href="#closedPositionsOtherCollapse" role="button" aria-expanded="true"
+        aria-controls="closedPositionsOtherCollapse" style="cursor: pointer;">
+        <h5 class="mb-0">
+            <i class="fas fa-chevron-down me-2"></i>
+            Closed Positions - Other Securities ({{ comparison.holdings.closed_positions.other_securities|length }})
+        </h5>
+        <span class="badge bg-light text-dark">Click to collapse/expand</span>
+    </div>
+    <div class="collapse show" id="closedPositionsOtherCollapse">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="closedPositionsOtherTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th data-type="string">Issuer Name</th>
+                            <th data-type="numeric">Units Amount (Previous)</th>
+                            <th data-type="numeric">Value ($)</th>
+                            <!-- <th data-type="numeric">Share Price ($)</th> -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for holding in comparison.holdings.closed_positions.other_securities %}
+                        <tr>
+                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean_prev }} stock price"
+                                    target="_blank">{{
+                                    holding.issuer_name_clean_prev }}</a></td>
+                            <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
+                            <td>{{ (holding.total_value_prev) | format_number }}</td>
+                            <!-- <td>{{ holding.per_share_price_prev }}</td> -->
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -150,14 +388,14 @@
 {% endif %}
 
 <!-- Increased Holdings Table -->
-{% if comparison.holdings.increased_holdings %}
+{% if comparison.holdings.increased_holdings.common_stock %}
 <div class="card mb-4">
     <div class="card-header bg-info text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#increasedHoldingsCollapse" role="button" aria-expanded="true"
         aria-controls="increasedHoldingsCollapse" style="cursor: pointer;">
         <h5 class="mb-0">
             <i class="fas fa-chevron-down me-2"></i>
-            Increased Holdings ({{ comparison.holdings.increased_holdings|length }})
+            Increased Holdings - Common Stock ({{ comparison.holdings.increased_holdings.common_stock|length }})
         </h5>
         <span class="badge bg-light text-dark">Click to collapse/expand</span>
     </div>
@@ -168,22 +406,28 @@
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
-                            <th data-type="numeric">Previous Shares</th>
-                            <th data-type="numeric">Latest Shares</th>
-                            <th data-type="numeric">Previous Value</th>
-                            <th data-type="numeric">Latest Value</th>
-                            <th data-type="numeric">Change (Share)</th>
-                            <th data-type="numeric">% Change (Share)</th>
+                            <th data-type="numeric">Previous Shares Amount</th>
+                            <th data-type="numeric">Latest Shares Amount</th>
+                            <th data-type="numeric">Previous Value ($)</th>
+                            <th data-type="numeric">Latest Value ($)</th>
+                            <th data-type="numeric">Previous Share Price ($)</th>
+                            <th data-type="numeric">Latest Share Price ($)</th>
+                            <th data-type="numeric">Change (Shares Amount)</th>
+                            <th data-type="numeric">% Change (Shares Amount)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for holding in comparison.holdings.increased_holdings %}
+                        {% for holding in comparison.holdings.increased_holdings.common_stock %}
                         <tr>
-                            <td>{{ holding.issuer_name_clean }}</td>
+                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                    target="_blank">{{
+                                    holding.issuer_name_clean }}</a></td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
-                            <td>${{ (holding.total_value_prev | default(0)) | format_number }}</td>
-                            <td>${{ (holding.total_value_latest | default(0)) | format_number }}</td>
+                            <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
+                            <td>{{ (holding.total_value_latest | default(0)) | format_number }}</td>
+                            <td>{{ holding.per_share_price_prev }}</td>
+                            <td>{{ holding.per_share_price_latest }}</td>
                             <td class="text-success">+{{ holding.change_in_share | default(0) | format_number }}</td>
                             <td class="text-success">+{{ holding.percent_change | default(0) | safe_round(2) }}%</td>
                         </tr>
@@ -196,15 +440,67 @@
 </div>
 {% endif %}
 
+{% if comparison.holdings.increased_holdings.other_securities %}
+<div class="card mb-4">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center"
+        data-bs-toggle="collapse" href="#increasedHoldingsOtherCollapse" role="button" aria-expanded="true"
+        aria-controls="increasedHoldingsOtherCollapse" style="cursor: pointer;">
+        <h5 class="mb-0">
+            <i class="fas fa-chevron-down me-2"></i>
+            Increased Holdings - Other Securities ({{ comparison.holdings.increased_holdings.other_securities|length }})
+        </h5>
+        <span class="badge bg-light text-dark">Click to collapse/expand</span>
+    </div>
+    <div class="collapse show" id="increasedHoldingsOtherCollapse">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="increasedHoldingsOtherTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th data-type="string">Issuer Name</th>
+                            <th data-type="numeric">Previous Units Amount</th>
+                            <th data-type="numeric">Latest Units Amount</th>
+                            <th data-type="numeric">Previous Value ($)</th>
+                            <th data-type="numeric">Latest Value ($)</th>
+                            <!-- <th data-type="numeric">Previous Share Price ($)</th>
+                            <th data-type="numeric">Latest Share Price ($)</th> -->
+                            <th data-type="numeric">Change (Units Amount)</th>
+                            <th data-type="numeric">% Change (Units Amount)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for holding in comparison.holdings.increased_holdings.other_securities %}
+                        <tr>
+                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                    target="_blank">{{
+                                    holding.issuer_name_clean }}</a></td>
+                            <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
+                            <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
+                            <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
+                            <td>{{ (holding.total_value_latest | default(0)) | format_number }}</td>
+                            <!-- <td>{{ holding.per_share_price_prev }}</td>
+                            <td>{{ holding.per_share_price_latest }}</td> -->
+                            <td class="text-success">+{{ holding.change_in_units | default(0) | format_number }}</td>
+                            <td class="text-success">+{{ holding.percent_change | default(0) | safe_round(2) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Decreased Holdings Table -->
-{% if comparison.holdings.decreased_holdings %}
+{% if comparison.holdings.decreased_holdings.common_stock %}
 <div class="card mb-4">
     <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#decreasedHoldingsCollapse" role="button" aria-expanded="true"
         aria-controls="decreasedHoldingsCollapse" style="cursor: pointer;">
         <h5 class="mb-0">
             <i class="fas fa-chevron-down me-2"></i>
-            Decreased Holdings ({{ comparison.holdings.decreased_holdings|length }})
+            Decreased Holdings - Common Stock ({{ comparison.holdings.decreased_holdings.common_stock|length }})
         </h5>
         <span class="badge bg-light text-dark">Click to collapse/expand</span>
     </div>
@@ -215,22 +511,28 @@
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
-                            <th data-type="numeric">Previous Shares</th>
-                            <th data-type="numeric">Latest Shares</th>
-                            <th data-type="numeric">Previous Value</th>
-                            <th data-type="numeric">Latest Value</th>
-                            <th data-type="numeric">Change</th>
-                            <th data-type="numeric">% Change</th>
+                            <th data-type="numeric">Previous Shares Amount</th>
+                            <th data-type="numeric">Latest Shares Amount</th>
+                            <th data-type="numeric">Previous Value ($)</th>
+                            <th data-type="numeric">Latest Value ($)</th>
+                            <th data-type="numeric">Previous Share Price ($)</th>
+                            <th data-type="numeric">Latest Share Price ($)</th>
+                            <th data-type="numeric">Change (Shares Amount)</th>
+                            <th data-type="numeric">% Change (Shares Amount)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for holding in comparison.holdings.decreased_holdings %}
+                        {% for holding in comparison.holdings.decreased_holdings.common_stock %}
                         <tr>
-                            <td>{{ holding.issuer_name_clean }}</td>
+                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                    target="_blank">{{
+                                    holding.issuer_name_clean }}</a></td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
-                            <td>${{ (holding.total_value_prev | default(0)) | format_number }}</td>
-                            <td>${{ (holding.total_value_latest | default(0)) | format_number }}</td>
+                            <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
+                            <td>{{ (holding.total_value_latest | default(0)) | format_number }}</td>
+                            <td>{{ holding.per_share_price_prev }}</td>
+                            <td>{{ holding.per_share_price_latest }}</td>
                             <td class="text-danger">{{ holding.change_in_share | default(0) | format_number }}</td>
                             <td class="text-danger">{{ holding.percent_change | default(0) | round(2) }}%</td>
                         </tr>
@@ -243,15 +545,67 @@
 </div>
 {% endif %}
 
+{% if comparison.holdings.decreased_holdings.other_securities %}
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center"
+        data-bs-toggle="collapse" href="#decreasedHoldingsOtherCollapse" role="button" aria-expanded="true"
+        aria-controls="decreasedHoldingsOtherCollapse" style="cursor: pointer;">
+        <h5 class="mb-0">
+            <i class="fas fa-chevron-down me-2"></i>
+            Decreased Holdings - Other Securities ({{ comparison.holdings.decreased_holdings.other_securities|length }})
+        </h5>
+        <span class="badge bg-light text-dark">Click to collapse/expand</span>
+    </div>
+    <div class="collapse show" id="decreasedHoldingsOtherCollapse">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="decreasedHoldingsOtherTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th data-type="string">Issuer Name</th>
+                            <th data-type="numeric">Previous Units Amount</th>
+                            <th data-type="numeric">Latest Units Amount</th>
+                            <th data-type="numeric">Previous Value ($)</th>
+                            <th data-type="numeric">Latest Value ($)</th>
+                            <!-- <th data-type="numeric">Previous Share Price ($)</th>
+                            <th data-type="numeric">Latest Share Price ($)</th> -->
+                            <th data-type="numeric">Change (Units Amount)</th>
+                            <th data-type="numeric">% Change (Units Amount)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for holding in comparison.holdings.decreased_holdings.other_securities %}
+                        <tr>
+                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                    target="_blank">{{
+                                    holding.issuer_name_clean }}</a></td>
+                            <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
+                            <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
+                            <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
+                            <td>{{ (holding.total_value_latest | default(0)) | format_number }}</td>
+                            <!-- <td>{{ holding.per_share_price_prev }}</td>
+                            <td>{{ holding.per_share_price_latest }}</td> -->
+                            <td class="text-danger">{{ holding.change_in_units | default(0) | format_number }}</td>
+                            <td class="text-danger">{{ holding.percent_change | default(0) | round(2) }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Common Holdings Table -->
-{% if comparison.holdings.common_holdings %}
+{% if comparison.holdings.common_holdings.common_stock %}
 <div class="card mb-4">
     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#commonHoldingsCollapse" role="button" aria-expanded="true"
         aria-controls="commonHoldingsCollapse" style="cursor: pointer;">
         <h5 class="mb-0">
             <i class="fas fa-chevron-down me-2"></i>
-            Unchanged Holdings ({{ comparison.holdings.common_holdings|length }})
+            Unchanged Holdings - Common Stock ({{ comparison.holdings.common_holdings.common_stock|length }})
         </h5>
         <span class="badge bg-light text-dark">Click to collapse/expand</span>
     </div>
@@ -265,19 +619,77 @@
                             <th data-type="numeric">Shares</th>
                             <th data-type="numeric">Value (Previous)</th>
                             <th data-type="numeric">Value (Latest)</th>
+                            <th data-type="numeric">Previous Share Price ($)</th>
+                            <th data-type="numeric">Latest Share Price ($)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for holding in comparison.holdings.common_holdings %}
+                        {% for holding in comparison.holdings.common_holdings.common_stock %}
                         <tr>
-                            <td>{{ holding.issuer_name_clean }}</td>
+                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                    target="_blank">{{
+                                    holding.issuer_name_clean }}</a></td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>${{ (holding.total_value_prev | default(0)) | format_number }}</td>
-                            <td {% if holding.total_value_latest> holding.total_value_prev %} class="text-success"
-                                {% elif holding.total_value_latest < holding.total_value_prev %} class="text-danger" {%
+                            <td {% if holding.total_value_latest> holding.total_value_prev %} class="text-success" {%
+                                elif holding.total_value_latest < holding.total_value_prev %} class="text-danger" {%
                                     endif %}>
                                     ${{ (holding.total_value_latest | default(0)) | format_number }}
                             </td>
+                            <td>{{ holding.per_share_price_prev }}</td>
+                            <td>{{ holding.per_share_price_latest }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
+<!-- Common Holdings Table -->
+{% if comparison.holdings.common_holdings.other_securities %}
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
+        data-bs-toggle="collapse" href="#commonHoldingsOtherCollapse" role="button" aria-expanded="true"
+        aria-controls="commonHoldingsOtherCollapse" style="cursor: pointer;">
+        <h5 class="mb-0">
+            <i class="fas fa-chevron-down me-2"></i>
+            Unchanged Holdings - Other Securities ({{ comparison.holdings.common_holdings.other_securities|length }})
+        </h5>
+        <span class="badge bg-light text-dark">Click to collapse/expand</span>
+    </div>
+    <div class="collapse show" id="commonHoldingsOtherCollapse">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="commonHoldingsOtherTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th data-type="string">Issuer Name</th>
+                            <th data-type="numeric">Units</th>
+                            <th data-type="numeric">Value (Previous)</th>
+                            <th data-type="numeric">Value (Latest)</th>
+                            <!-- <th data-type="numeric">Previous Units Price ($)</th>
+                            <th data-type="numeric">Latest Units Price ($)</th> -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for holding in comparison.holdings.common_holdings.other_securities %}
+                        <tr>
+                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
+                                    target="_blank">{{
+                                    holding.issuer_name_clean }}</a></td>
+                            <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
+                            <td>${{ (holding.total_value_prev | default(0)) | format_number }}</td>
+                            <td {% if holding.total_value_latest> holding.total_value_prev %} class="text-success" {%
+                                elif holding.total_value_latest < holding.total_value_prev %} class="text-danger" {%
+                                    endif %}>
+                                    ${{ (holding.total_value_latest | default(0)) | format_number }}
+                            </td>
+                            <!-- <td>{{ holding.per_units_price_prev }}</td> -->
+                            <!-- <td>{{ holding.per_units_price_latest }}</td> -->
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -343,10 +755,10 @@
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    new_holdings: comparisonData.holdings.new_holdings,
-                    closed_positions: comparisonData.holdings.closed_positions,
-                    increased_holdings: comparisonData.holdings.increased_holdings,
-                    decreased_holdings: comparisonData.holdings.decreased_holdings,
+                    new_holdings: comparisonData.holdings.new_holdings.common_stock,
+                    closed_positions: comparisonData.holdings.closed_positions.common_stock,
+                    increased_holdings: comparisonData.holdings.increased_holdings.common_stock,
+                    decreased_holdings: comparisonData.holdings.decreased_holdings.common_stock,
                 }),
             });
 
@@ -431,7 +843,7 @@
             });
         }
         // Initialize all DataTables
-        const tableConfig = {
+        const baseConfig = {
             pageLength: 25,
             lengthMenu: [10, 25, 50, 100],
             order: [], // No initial sorting
@@ -453,11 +865,36 @@
         };
 
         // Initialize each table if it exists
-        $('#newHoldingsTable').DataTable(tableConfig);
-        $('#closedPositionsTable').DataTable(tableConfig);
-        $('#increasedHoldingsTable').DataTable(tableConfig);
-        $('#decreasedHoldingsTable').DataTable(tableConfig);
-        $('#commonHoldingsTable').DataTable(tableConfig);
+        $('#newHoldingsTable').DataTable($.extend({}, baseConfig, {
+            order: [[2, 'desc']]
+        }));
+        $('#newHoldingsOtherTable').DataTable($.extend({}, baseConfig, {
+            order: [[2, 'desc']]
+        }));
+        $('#closedPositionsTable').DataTable($.extend({}, baseConfig, {
+            order: [[2, 'desc']]
+        }));
+        $('#closedPositionsOtherTable').DataTable($.extend({}, baseConfig, {
+            order: [[2, 'desc']]
+        }));
+        $('#increasedHoldingsTable').DataTable($.extend({}, baseConfig, {
+            order: [[8, 'desc']]
+        }));
+        $('#increasedHoldingsOtherTable').DataTable($.extend({}, baseConfig, {
+            order: [[6, 'desc']]
+        }));
+        $('#decreasedHoldingsTable').DataTable($.extend({}, baseConfig, {
+            order: [[8, 'asc']]
+        }));
+        $('#decreasedHoldingsOtherTable').DataTable($.extend({}, baseConfig, {
+            order: [[6, 'asc']]
+        }));
+        $('#commonHoldingsTable').DataTable($.extend({}, baseConfig, {
+            order: [[3, 'desc']]
+        }));
+        $('#commonHoldingsOtherTable').DataTable($.extend({}, baseConfig, {
+            order: [[3, 'desc']]
+        }));
 
         // Update collapse icons
         $('.collapse').on('show.bs.collapse', function () {
@@ -470,15 +907,6 @@
             $(this).prev('.card-header').find('.fa-chevron-up')
                 .removeClass('fa-chevron-up')
                 .addClass('fa-chevron-down');
-        });
-
-        // Apply number formatting
-        document.querySelectorAll('td').forEach(cell => {
-            const text = cell.textContent.trim();
-            const num = parseFloat(text.replace(/[^\d.-]/g, ''));
-            if (!isNaN(num) && text !== '') {
-                cell.textContent = formatNumber(num);
-            }
         });
 
         // Fetch and display AI summary if comparison data exists

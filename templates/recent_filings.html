@@ -36,7 +36,7 @@
             <tr>
                 <td>
                     {% if filing.company_name %}
-                    <a href="{{ url_for('company_detail', cik=filing.cik_number) }}">
+                    <a href="{{ url_for('latest_company_quarters_comparison', cik=filing.cik_number) }}">
                         {{ filing.company_name }}
                     </a>
                     {% else %}
@@ -67,7 +67,7 @@
     <ul class="pagination justify-content-center">
         <!-- Previous Page -->
         <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('index', page=current_page-1, per_page=per_page) }}"
+            <a class="page-link" href="{{ url_for('latest_filings', page=current_page-1, per_page=per_page) }}"
                 aria-label="Previous">
                 <span aria-hidden="true">&laquo;</span>
             </a>
@@ -80,7 +80,7 @@
 
         {% for p in range(start_page, end_page + 1) %}
         <li class="page-item {% if p == current_page %}active{% endif %}">
-            <a class="page-link" href="{{ url_for('index', page=p, per_page=per_page) }}">
+            <a class="page-link" href="{{ url_for('latest_filings', page=p, per_page=per_page) }}">
                 {{ p }}
             </a>
         </li>
@@ -88,7 +88,7 @@
 
         <!-- Next Page -->
         <li class="page-item {% if not pagination.has_more %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('index', page=current_page+1, per_page=per_page) }}"
+            <a class="page-link" href="{{ url_for('latest_filings', page=current_page+1, per_page=per_page) }}"
                 aria-label="Next">
                 <span aria-hidden="true">&raquo;</span>
             </a>
@@ -101,7 +101,7 @@
     <div class="btn-group" role="group">
         <span class="me-2 align-self-center">Items per page:</span>
         {% for count in [10, 25, 50, 100] %}
-        <a href="{{ url_for('index', page=1, per_page=count) }}"
+        <a href="{{ url_for('latest_filings', page=1, per_page=count) }}"
             class="btn btn-outline-primary {% if per_page == count %}active{% endif %}">
             {{ count }}
         </a>
@@ -121,4 +121,58 @@
     {% endif %}
 </div>
 {% endif %}
+{% endblock %}
+
+{% block styles %}
+<style>
+    .table-responsive table {
+        table-layout: fixed;
+        /* This is the key property */
+        width: 100%;
+        /* Ensure the table fills its container */
+    }
+
+    /* Assigning fixed widths to each column */
+    .table-responsive th:nth-child(1),
+    .table-responsive td:nth-child(1) {
+        width: 25%;
+        /* Company Name */
+    }
+
+    .table-responsive th:nth-child(2),
+    .table-responsive td:nth-child(2) {
+        width: 10%;
+        /* CIK */
+    }
+
+    .table-responsive th:nth-child(3),
+    .table-responsive td:nth-child(3) {
+        width: 10%;
+        /* Form Type */
+    }
+
+    .table-responsive th:nth-child(4),
+    .table-responsive td:nth-child(4) {
+        width: 20%;
+        /* Accession Number */
+    }
+
+    .table-responsive th:nth-child(5),
+    .table-responsive td:nth-child(5) {
+        width: 15%;
+        /* Filing Date */
+    }
+
+    .table-responsive th:nth-child(6),
+    .table-responsive td:nth-child(6) {
+        width: 10%;
+        /* Reporting Period */
+    }
+
+    .table-responsive th:nth-child(7),
+    .table-responsive td:nth-child(7) {
+        width: 10%;
+        /* Created At */
+    }
+</style>
 {% endblock %}

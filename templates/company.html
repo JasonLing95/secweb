@@ -8,7 +8,7 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <h5 class="card-title">Manager Information</h5>
+        <h5 class="card-title">Company Information</h5>
         <p><strong>Company Name:</strong> {{ manager.company_name or 'N/A' }}</p>
         <p><strong>Phone:</strong> {{ manager.company_phone or 'N/A' }}</p>
         <p><strong>Business Address:</strong> {{ manager.business_address or 'N/A' }}</p>
@@ -41,7 +41,8 @@
                 <td>{{ filing.filing_date }}</td>
                 <td>{{ filing.period_of_report }}</td>
                 <td>{{ filing.file_number }}</td>
-                <td><a href="https://sec.gov/{{ filing.file_dir }}" target="_blank">{{ filing.filing_directory }}</a>
+                <td><a href="https://sec.gov/{{ filing.filing_directory }}" target="_blank">{{ filing.filing_directory
+                        }}</a>
                 </td>
                 <td>{{ filing.created_at | human_date }}</td>
                 <td>
@@ -60,32 +61,6 @@
     </table>
 </div>
 
-<!-- Compare Modal -->
-<div class="modal fade" id="comparisonModal" tabindex="-1" aria-labelledby="comparisonModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="comparisonModalLabel">Filing Comparison</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="comparisonModalBody">
-                <div class="text-center">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <!-- <button type="button" class="btn btn-primary" id="exportComparisonBtn">Export</button> -->
-                <a id="fullScreenAnalysisBtn" class="btn btn-primary" href="#" target="_blank">
-                    <i class="bi bi-arrows-fullscreen"></i> Full Screen
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
 {% endblock %}
 
 {% block scripts %}
@@ -93,10 +68,10 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const compareButtons = document.querySelectorAll('.compare-btn');
-        const comparisonModal = new bootstrap.Modal(document.getElementById('comparisonModal'));
-        const modalBody = document.getElementById('comparisonModalBody');
-        const exportBtn = document.getElementById('exportComparisonBtn');
-        let currentComparisonData = null;
+        // const comparisonModal = new bootstrap.Modal(document.getElementById('comparisonModal'));
+        // const modalBody = document.getElementById('comparisonModalBody');
+        // const exportBtn = document.getElementById('exportComparisonBtn');
+        // let currentComparisonData = null;
         const API_HOST = "{{ api_url }}";
 
         // Store filing dates for proper chronological comparison
@@ -108,361 +83,103 @@
             element: row
         })).sort((a, b) => b.date - a.date); // Sort by date descending (newest first)
 
-        // Update the compare buttons to find the correct previous filing
+        // Find the next filing with a different reporting period
         filingDates.forEach((filing, index) => {
-            const compareBtn = filing.element.querySelector('.compare-btn');
-
-            // Disable button for the oldest filing (no previous to compare with)
-            if (index === filingDates.length - 1) {
-                compareBtn.disabled = true;
-                compareBtn.title = "No earlier filing to compare with";
-                return;
-            }
-
-            // Find the next filing with a different date
             let previousFilingIndex = index + 1;
-            while (previousFilingIndex < filingDates.length &&
-                filingDates[previousFilingIndex].period === filing.period) {
+            while (previousFilingIndex < filingDates.length && filingDates[previousFilingIndex].period === filing.period) {
                 previousFilingIndex++;
             }
 
-            // If we found a filing with a different date, store it for comparison
+            // If a previous filing with a different period is found, update the button's dataset
+            const compareBtn = filing.element.querySelector('.compare-btn');
             if (previousFilingIndex < filingDates.length) {
                 const previousFiling = filingDates[previousFilingIndex];
                 compareBtn.dataset.previousAccession = previousFiling.accession;
                 compareBtn.title = `Compare with ${previousFiling.accession} (Reporting Period: ${previousFiling.period})`;
             } else {
-                // No filing with a different date found
+                // If no such filing is found, disable the button and add a title
                 compareBtn.disabled = true;
-                compareBtn.title = "No earlier filing with different reporting period to compare with";
+                compareBtn.title = "No earlier filing with a different reporting period to compare with";
             }
         });
 
+        // Add event listener to each button to handle the redirect
         compareButtons.forEach(button => {
             if (button.disabled) return;
 
-            button.addEventListener('click', async function (event) {
-                const clickedButton = event.currentTarget;
-                const originalButtonText = clickedButton.innerHTML;
+            button.addEventListener('click', function (event) {
+                const latestAccession = this.dataset.accession;
+                const previousAccession = this.dataset.previousAccession;
 
-                // Provide user feedback by disabling the button and showing a spinner
-                clickedButton.disabled = true;
-                clickedButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Comparing...`;
-
-                const latestAccession = clickedButton.dataset.accession;
-                const previousAccession = clickedButton.dataset.previousAccession;
-
-                if (!previousAccession) {
-                    alert("Could not find the previous filing to compare against.");
-                    clickedButton.disabled = false;
-                    clickedButton.innerHTML = originalButtonText;
-                    return;
-                }
-
-                fullScreenAnalysisBtn.href = `/compare?prev=${previousAccession}&latest=${latestAccession}`;
-
-
-                // Show the modal with a loading spinner before fetching data
-                modalBody.innerHTML = `
-                <div class="text-center p-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Fetching and comparing filings...</p>
-                </div>`;
-                comparisonModal.show();
-
-                try {
-                    const apiUrl = `${API_HOST}/analysis/${encodeURIComponent(previousAccession)}/${encodeURIComponent(latestAccession)}`;
-                    console.log("Fetching from:", apiUrl);
-
-                    const response = await fetch(apiUrl);
-
-                    if (!response.ok) {
-                        let errorMessage = `HTTP error! Status: ${response.status}`;
-                        try {
-                            const errorData = await response.json();
-                            errorMessage = errorData.detail || errorMessage;
-                        } catch (e) {
-                            // If response is not JSON, use status text
-                            errorMessage = response.statusText || errorMessage;
-                        }
-                        throw new Error(errorMessage);
-                    }
-
-                    const data = await response.json();
-                    currentComparisonData = data;
-                    displayResults(data);
-
-                    // Send a POST request to your Flask backend to save the comparison
-                    try {
-                        await fetch(`${API_HOST}/comparisons`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                acc_num_1: previousAccession,
-                                acc_num_2: latestAccession,
-                            }),
-                        });
-                        console.log("Comparison logged successfully!");
-                    } catch (saveError) {
-                        console.error("Failed to save comparison to database:", saveError);
-                    }
-
-                } catch (error) {
-                    console.error('Comparison failed:', error);
-                    modalBody.innerHTML = `
-                        <div class="alert alert-danger" role="alert">
-                            <h5 class="alert-heading">Comparison Failed</h5>
-                            <p><strong>Error:</strong> ${error.message}</p>
-                            <p>Please try again or contact support if the problem persists.</p>
-                        </div>`;
-                } finally {
-                    // Always restore the button state after the operation completes
-                    clickedButton.disabled = false;
-                    clickedButton.innerHTML = originalButtonText;
+                if (latestAccession && previousAccession) {
+                    // Construct the URL and navigate to the new page
+                    const url = `{{ url_for('compare', prev='__PREV__', latest='__LATEST__') | safe }}`
+                        .replace('__PREV__', previousAccession)
+                        .replace('__LATEST__', latestAccession);
+                    window.location.href = url;
+                } else {
+                    alert("Previous filing not found for comparison.");
                 }
             });
         });
 
-        // Export functionality
-        exportBtn.addEventListener('click', function () {
-            if (!currentComparisonData) return;
 
-            const csvContent = generateCSV(currentComparisonData);
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            const fileName = `comparison_${currentComparisonData.metadata.previous_filing.accession_number}_${currentComparisonData.metadata.latest_filing.accession_number}.csv`;
+        /* --- Sorting Script --- */
+        function makeTableSortable(table) {
+            const headers = table.querySelectorAll('th[data-sort-by]');
+            const tbody = table.querySelector('tbody');
 
-            link.setAttribute('href', url);
-            link.setAttribute('download', fileName);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const sortBy = header.dataset.sortBy;
+                    const isAsc = header.classList.contains('asc');
 
-        function generateCSV(data) {
-            const meta = data.metadata;
-            const holdings = data.holdings;
+                    // Clear all sorting classes from other headers
+                    headers.forEach(h => h.classList.remove('asc', 'desc'));
 
-            let csv = 'Category,Issuer Name,Latest Shares,Latest Value,Previous Shares,Previous Value,Share Change,% Change\n';
+                    // Toggle sort direction
+                    header.classList.add(isAsc ? 'desc' : 'asc');
 
-            // Helper function to add holdings to CSV
-            const addHoldingsToCSV = (category, holdingsList) => {
-                if (!holdingsList || holdingsList.length === 0) return;
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
 
-                holdingsList.forEach(holding => {
-                    const row = [
-                        category,
-                        `"${holding.issuer_name_clean}"`,
-                        holding.total_shares_latest || '',
-                        holding.total_value_latest || '',
-                        holding.total_shares_prev || '',
-                        holding.total_value_prev || '',
-                        holding.change_in_share || '',
-                        holding.percent_change || ''
-                    ];
-                    csv += row.join(',') + '\n';
+                    rows.sort((a, b) => {
+                        const aValue = a.querySelector(`[data-sort-by="${sortBy}"]`) ? a.querySelector(`[data-sort-by="${sortBy}"]`).textContent.trim() : a.querySelector(`td:nth-child(${Array.from(header.parentNode.children).indexOf(header) + 1})`).textContent.trim();
+                        const bValue = b.querySelector(`[data-sort-by="${sortBy}"]`) ? b.querySelector(`[data-sort-by="${sortBy}"]`).textContent.trim() : b.querySelector(`td:nth-child(${Array.from(header.parentNode.children).indexOf(header) + 1})`).textContent.trim();
+
+                        let comparison = 0;
+                        // Handle numeric and date sorting
+                        if (!isNaN(Date.parse(aValue)) && !isNaN(Date.parse(bValue))) {
+                            comparison = new Date(aValue) - new Date(bValue);
+                        } else if (!isNaN(parseFloat(aValue)) && !isNaN(parseFloat(bValue))) {
+                            comparison = parseFloat(aValue) - parseFloat(bValue);
+                        } else {
+                            comparison = aValue.localeCompare(bValue);
+                        }
+
+                        return isAsc ? comparison : -comparison;
+                    });
+
+                    // Re-append the sorted rows
+                    rows.forEach(row => tbody.appendChild(row));
                 });
-            };
-
-            addHoldingsToCSV('New Holdings', holdings.new_holdings);
-            addHoldingsToCSV('Increased Holdings', holdings.increased_holdings);
-            addHoldingsToCSV('Decreased Holdings', holdings.decreased_holdings);
-            addHoldingsToCSV('Closed Positions', holdings.closed_positions);
-            addHoldingsToCSV('Unchanged Holdings', holdings.common_holdings);
-
-            return csv;
+            });
         }
 
+        // Call the function on your table
+        const filingsTable = document.getElementById('filings-table');
+        if (filingsTable) {
+            makeTableSortable(filingsTable);
 
-        function displayResults(data) {
-            // Define which columns to show for each table type
-            const columnConfig = {
-                'new_holdings': ['issuer_name_clean', 'total_shares_latest', 'total_value_latest'],
-                'closed_positions': ['issuer_name_clean_prev', 'total_shares_prev', 'total_value_prev'],
-                'increased_holdings': ['issuer_name_clean', 'total_shares_prev', 'total_shares_latest', 'total_value_prev', 'total_value_latest', 'change_in_share', 'percent_change'],
-                'decreased_holdings': ['issuer_name_clean', 'total_shares_prev', 'total_shares_latest', 'total_value_prev', 'total_value_latest', 'change_in_share', 'percent_change'],
-                'common_holdings': ['issuer_name_clean', 'total_shares_prev', 'total_shares_latest', 'total_value_prev', 'total_value_latest']
-            };
+            // Get the header for the "Reporting Period" column
+            const reportingPeriodHeader = document.querySelector('[data-sort-by="period_of_report"]');
 
-            // Column definitions with labels and formatting
-            const columnDefinitions = {
-                'issuer_name_clean': {
-                    label: 'Issuer Name',
-                    format: (value) => escapeHtml(value || 'N/A')
-                },
-                'issuer_name_clean_prev': {
-                    label: 'Issuer Name',
-                    format: (value) => escapeHtml(value || 'N/A')
-                },
-                'total_shares_latest': {
-                    label: 'Latest Shares',
-                    format: (value) => value ? value.toLocaleString() : 'N/A'
-                },
-                'total_value_latest': {
-                    label: 'Latest Value',
-                    format: (value) => value ? `$${value.toLocaleString()}` : 'N/A'
-                },
-                'total_shares_prev': {
-                    label: 'Prev Shares',
-                    format: (value) => value ? value.toLocaleString() : 'N/A'
-                },
-                'total_value_prev': {
-                    label: 'Prev Value',
-                    format: (value) => value ? `$${value.toLocaleString()}` : 'N/A'
-                },
-                'change_in_share': {
-                    label: 'Change (Share)',
-                    format: (value) => value ? value.toLocaleString() : ''
-                },
-                'percent_change': {
-                    label: '% Change (Share)',
-                    format: (value) => value ? `${value}%` : ''
-                }
-            };
-
-            const createHoldingRow = (holding, columns) => {
-                const cells = columns.map(col => {
-                    const value = holding[col];
-                    return `<td>${columnDefinitions[col].format(value)}</td>`;
-                }).join('');
-
-                return `<tr>${cells}</tr>`;
-            };
-
-            const createHoldingsTable = (title, holdings, tableType) => {
-                if (!holdings || holdings.length === 0) {
-                    return `<h5 class="mt-4">${title} (0)</h5><p class="text-muted">None.</p>`;
-                }
-
-                const columns = columnConfig[tableType] || Object.keys(columnDefinitions);
-                const headers = columns.map(col =>
-                    `<th>${columnDefinitions[col].label}</th>`
-                ).join('');
-
-                return `
-                <h5 class="mt-4">${title} (${holdings.length})</h5>
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-light"><tr>${headers}</tr></thead>
-                        <tbody>
-                            ${holdings.map(holding => createHoldingRow(holding, columns)).join('')}
-                        </tbody>
-                    </table>
-                </div>`;
-            };
-
-            const meta = data.metadata;
-            const holdings = data.holdings;
-            const amendmentInfo = meta.amendment_used ? `<div class="alert alert-info small">${meta.amendment_used}</div>` : '';
-
-            modalBody.innerHTML = `
-            ${amendmentInfo}
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0">Filing Details</h6>
-                        </div>
-                        <div class="card-body">
-                            <p class="mb-1"><strong>Latest Filing:</strong><br>
-                            ${meta.latest_filing.accession_number}<br>
-                            ${meta.latest_filing.period_of_report} (${meta.latest_filing.form_type})</p>
-                            <p class="mb-0"><strong>Previous Filing:</strong><br>
-                            ${meta.previous_filing.accession_number}<br>
-                            ${meta.previous_filing.period_of_report} (${meta.previous_filing.form_type})</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0">Summary</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-6">
-                                    <p class="mb-1">New Positions: <span class="badge bg-success float-end">${meta.summary.new_holdings_count}</span></p>
-                                    <p class="mb-1">Increased: <span class="badge bg-primary float-end">${meta.summary.increased_holdings_count}</span></p>
-                                </div>
-                                <div class="col-6">
-                                    <p class="mb-1">Closed Positions: <span class="badge bg-danger float-end">${meta.summary.closed_positions_count}</span></p>
-                                    <p class="mb-0">Decreased: <span class="badge bg-warning text-dark float-end">${meta.summary.decreased_holdings_count}</span></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <hr>
-            ${createHoldingsTable(`New Holdings`, holdings.new_holdings, 'new_holdings')}
-            ${createHoldingsTable(`Closed Positions`, holdings.closed_positions, 'closed_positions')}
-            ${createHoldingsTable(`Increased Holdings`, holdings.increased_holdings, 'increased_holdings')}
-            ${createHoldingsTable(`Decreased Holdings`, holdings.decreased_holdings, 'decreased_holdings')}
-            ${createHoldingsTable(`Unchanged Holdings`, holdings.common_holdings, 'common_holdings')}
-            `;
-        }
-
-
-        // Helper function to escape HTML for security
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+            if (reportingPeriodHeader) {
+                // Trigger a click to sort by reporting period in descending order
+                reportingPeriodHeader.click();
+                reportingPeriodHeader.classList.remove('asc');
+                reportingPeriodHeader.classList.add('desc');
+            }
         }
     });
-
-    /* --- Sorting Script --- */
-    function makeTableSortable(table) {
-        const headers = table.querySelectorAll('th[data-sort-by]');
-        const tbody = table.querySelector('tbody');
-
-        headers.forEach(header => {
-            header.addEventListener('click', () => {
-                const sortBy = header.dataset.sortBy;
-                const isAsc = header.classList.contains('asc');
-
-                // Clear all sorting classes from other headers
-                headers.forEach(h => h.classList.remove('asc', 'desc'));
-
-                // Toggle sort direction
-                header.classList.add(isAsc ? 'desc' : 'asc');
-
-                const rows = Array.from(tbody.querySelectorAll('tr'));
-
-                rows.sort((a, b) => {
-                    const aValue = a.querySelector(`[data-sort-by="${sortBy}"]`) ? a.querySelector(`[data-sort-by="${sortBy}"]`).textContent.trim() : a.querySelector(`td:nth-child(${Array.from(header.parentNode.children).indexOf(header) + 1})`).textContent.trim();
-                    const bValue = b.querySelector(`[data-sort-by="${sortBy}"]`) ? b.querySelector(`[data-sort-by="${sortBy}"]`).textContent.trim() : b.querySelector(`td:nth-child(${Array.from(header.parentNode.children).indexOf(header) + 1})`).textContent.trim();
-
-                    let comparison = 0;
-                    // Handle numeric and date sorting
-                    if (!isNaN(Date.parse(aValue)) && !isNaN(Date.parse(bValue))) {
-                        comparison = new Date(aValue) - new Date(bValue);
-                    } else if (!isNaN(parseFloat(aValue)) && !isNaN(parseFloat(bValue))) {
-                        comparison = parseFloat(aValue) - parseFloat(bValue);
-                    } else {
-                        comparison = aValue.localeCompare(bValue);
-                    }
-
-                    return isAsc ? comparison : -comparison;
-                });
-
-                // Re-append the sorted rows
-                rows.forEach(row => tbody.appendChild(row));
-            });
-        });
-    }
-
-    // Call the function on your table
-    const filingsTable = document.getElementById('filings-table');
-    if (filingsTable) {
-        makeTableSortable(filingsTable);
-    }
 </script>
 {% endblock %}

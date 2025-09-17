@@ -88,6 +88,12 @@ def make_api_request(endpoint: str, params=None):
 
 @app.route('/')
 def index():
+    comparisons = make_api_request("/comparisons")
+    return render_template('recent_comparisons.html', comparisons=comparisons)
+
+
+@app.route('/filings/latest')
+def latest_filings():
     """Home page showing latest filings with pagination"""
     # Get pagination parameters from query string
     page = request.args.get('page', 1, type=int)
@@ -112,7 +118,7 @@ def index():
         pagination = {}
 
     return render_template(
-        'index.html',
+        'recent_filings.html',
         filings=filings,
         pagination=pagination,
         current_page=page,
@@ -144,32 +150,41 @@ def filing_by_accession(accession_number):
     # First try to get filing by accession number
     filing = make_api_request(f"/filings/{accession_number}")
 
-    # Then get holdings for the filing ID
-    page = request.args.get('page', 1, type=int)
-    limit = request.args.get('limit', 50, type=int)  # Default to 50 items per page
+    return render_template('filing.html', filing=filing)
 
-    # Calculate offset for pagination
-    offset = (page - 1) * limit
 
-    # Get holdings with pagination
-    holdings_response = make_api_request(
-        f"/holdings/{accession_number}?limit={limit}&offset={offset}"
-    )
+@app.route('/api/holdings/<accession_number>')
+def get_holdings_data(accession_number):
+    """
+    API endpoint that DataTables will call directly for data.
+    """
+    # Get parameters that DataTables sends
+    draw = request.args.get('draw', type=int)
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    search_value = request.args.get('search[value]', '')
 
-    if holdings_response and 'holdings' in holdings_response:
-        holdings = holdings_response['holdings']
-        pagination = holdings_response.get('pagination', {})
-    else:
-        holdings = []
-        pagination = {}
+    # You will need to map DataTables' column index to your API's sorting parameters
+    order_column_index = request.args.get('order[0][column]', type=int)
+    order_dir = request.args.get('order[0][dir]', 'asc')
 
-    return render_template(
-        'filing.html',
-        filing=filing,
-        holdings=holdings,
-        pagination=pagination,
-        current_page=page,
-    )
+    # Construct the query string for your API based on DataTable's parameters
+    api_url = f"{API_BASE_URL}/holdings/{accession_number}"
+    params = {
+        "draw": draw,
+        "start": start,
+        "length": length,
+        "search[value]": search_value,
+        "order[0][column]": order_column_index,
+        "order[0][dir]": order_dir,
+    }
+
+    # Make the request to your FastAPI backend
+    response = requests.get(api_url, params=params)
+    response.raise_for_status()  # Raise an exception for bad status codes
+
+    # Return the JSON data directly to DataTables
+    return response.json()
 
 
 @app.route('/compare')
@@ -187,6 +202,8 @@ def compare():
         )
         if comparison_data and comparison_data['metadata'].get('amendment_used'):
             filing_swapped = comparison_data['metadata']['amendment_used']
+    else:
+        print("No comparison data returned")
 
     return render_template(
         'compare.html',
@@ -198,11 +215,33 @@ def compare():
     )
 
 
-@app.route("/recent_comparisons")
-def show_recent_comparisons():
-    comparisons = make_api_request("/comparisons")
+@app.route("/company/latest/<cik>")
+def latest_company_quarters_comparison(cik):
+    previous_accession_number = None
+    latest_accession_number = None
+    filing_swapped = None
 
-    return render_template('recent_comparisons.html', comparisons=comparisons)
+    comparison_data = make_api_request(f"/company/{cik}/compare/latest")
+
+    if comparison_data:
+        latest_accession_number = comparison_data['metadata']['latest_filing'][
+            'accession_number'
+        ]
+        previous_accession_number = comparison_data['metadata']['previous_filing'][
+            'accession_number'
+        ]
+
+        if comparison_data['metadata'].get('amendment_used'):
+            filing_swapped = comparison_data['metadata']['amendment_used']
+
+    return render_template(
+        'compare.html',
+        comparison=comparison_data,
+        prev_accession=previous_accession_number,
+        latest_accession=latest_accession_number,
+        filing_swapped=filing_swapped,
+        api_url=API_BASE_URL_CLIENT,
+    )
 
 
 if __name__ == '__main__':
