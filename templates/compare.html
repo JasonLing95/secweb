@@ -11,6 +11,27 @@
 </div>
 {% endif %}
 
+{% if comparison.metadata.latest_filing.multiplication_applied and
+comparison.metadata.previous_filing.multiplication_applied %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    x1000 applied to both the value of latest and previous filings
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% elif comparison.metadata.latest_filing.multiplication_applied %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    x1000 applied to the value of latest filing
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% elif comparison.metadata.previous_filing.multiplication_applied %}
+<div class="alert alert-info alert-dismissible fade show" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    x1000 applied to the value of previous filing
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
 {% if comparison %}
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">

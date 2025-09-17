@@ -25,3 +25,9 @@ body {
 .compare-btn {
     cursor: pointer;
 }
+
+#logo-image {
+    height: 40px;
+    /* Adjust the height as needed */
+    width: auto;
+}

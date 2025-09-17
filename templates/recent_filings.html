@@ -67,7 +67,7 @@
     <ul class="pagination justify-content-center">
         <!-- Previous Page -->
         <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('latest_filings', page=current_page-1, per_page=per_page) }}"
+            <a class="page-link" href="{{ url_for('index', page=current_page-1, per_page=per_page) }}"
                 aria-label="Previous">
                 <span aria-hidden="true">&laquo;</span>
             </a>
@@ -80,7 +80,7 @@
 
         {% for p in range(start_page, end_page + 1) %}
         <li class="page-item {% if p == current_page %}active{% endif %}">
-            <a class="page-link" href="{{ url_for('latest_filings', page=p, per_page=per_page) }}">
+            <a class="page-link" href="{{ url_for('index', page=p, per_page=per_page) }}">
                 {{ p }}
             </a>
         </li>
@@ -88,7 +88,7 @@
 
         <!-- Next Page -->
         <li class="page-item {% if not pagination.has_more %}disabled{% endif %}">
-            <a class="page-link" href="{{ url_for('latest_filings', page=current_page+1, per_page=per_page) }}"
+            <a class="page-link" href="{{ url_for('index', page=current_page+1, per_page=per_page) }}"
                 aria-label="Next">
                 <span aria-hidden="true">&raquo;</span>
             </a>
@@ -101,7 +101,7 @@
     <div class="btn-group" role="group">
         <span class="me-2 align-self-center">Items per page:</span>
         {% for count in [10, 25, 50, 100] %}
-        <a href="{{ url_for('latest_filings', page=1, per_page=count) }}"
+        <a href="{{ url_for('index', page=1, per_page=count) }}"
             class="btn btn-outline-primary {% if per_page == count %}active{% endif %}">
             {{ count }}
         </a>

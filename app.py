@@ -88,12 +88,6 @@ def make_api_request(endpoint: str, params=None):
 
 @app.route('/')
 def index():
-    comparisons = make_api_request("/comparisons")
-    return render_template('recent_comparisons.html', comparisons=comparisons)
-
-
-@app.route('/filings/latest')
-def latest_filings():
     """Home page showing latest filings with pagination"""
     # Get pagination parameters from query string
     page = request.args.get('page', 1, type=int)
