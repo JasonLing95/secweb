@@ -8,8 +8,8 @@ from datetime import datetime
 app = Flask(__name__)
 
 # Configuration
-API_BASE_URL_CLIENT = os.getenv("API_BASE_URL_CLIENT", 'http://localhost:8000')
-API_BASE_URL = os.getenv("API_BASE_URL", 'http://localhost:8000')
+API_BASE_URL_CLIENT = os.getenv("API_BASE_URL_CLIENT", "http://localhost:8000")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 
 @app.context_processor
@@ -18,16 +18,16 @@ def utility_processor():
     Utility functions available in Jinja2 templates
     """
     return {
-        'max': max,
-        'min': min,
-        'abs': abs,
-        'round': round,
-        'len': len,
-        'range': range,  # if you need math functions
+        "max": max,
+        "min": min,
+        "abs": abs,
+        "round": round,
+        "len": len,
+        "range": range,  # if you need math functions
     }
 
 
-@app.template_filter('format_number')
+@app.template_filter("format_number")
 def format_number_filter(value):
     """Format numbers with thousands separators"""
     if value is None:
@@ -38,7 +38,7 @@ def format_number_filter(value):
         return str(value)
 
 
-@app.template_filter('human_date')
+@app.template_filter("human_date")
 def human_readable_date(timestamp_string):
     """
     Converts a timestamp string to a human-readable format.
@@ -52,12 +52,12 @@ def human_readable_date(timestamp_string):
         # datetime.fromisoformat() is used to parse the timestamp
         dt_object = datetime.fromisoformat(timestamp_string)
         # strftime() is used to format the datetime object into a new string
-        return dt_object.strftime('%B %d, %Y at %I:%M %p')
+        return dt_object.strftime("%B %d, %Y at %I:%M %p")
     except ValueError:
         return "Invalid Date"
 
 
-@app.template_filter('safe_round')
+@app.template_filter("safe_round")
 def safe_round(value, precision=2):
     """
     Safely rounds a numeric value to a specified precision.
@@ -86,18 +86,25 @@ def make_api_request(endpoint: str, params=None):
         return None
 
 
-@app.route('/')
+@app.route("/")
 def index():
     """Home page showing latest filings with pagination"""
     # Get pagination parameters from query string
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 50, type=int)
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+    sort_by = request.args.get("sort_by", "filing_date", type=str)
+    sort_order = request.args.get("sort_order", "desc", type=str)
 
     # Calculate offset
     offset = (page - 1) * per_page
 
     # Make API request with pagination
-    params = {'limit': per_page, 'offset': offset}
+    params = {
+        "limit": per_page,
+        "offset": offset,
+        "sort_by": sort_by,
+        "sort_order": sort_order,
+    }
 
     response = make_api_request(
         "/filings",
@@ -107,20 +114,24 @@ def index():
     if response and isinstance(response, dict):
         filings = response.get("filings", [])
         pagination = response.get("pagination", {})
+        sorting = response.get("sorting", {})
     else:
         filings = []
         pagination = {}
+        sorting = {"current_sort_by": "filing_date", "current_sort_order": "desc"}
 
     return render_template(
-        'recent_filings.html',
+        "recent_filings.html",
         filings=filings,
         pagination=pagination,
         current_page=page,
         per_page=per_page,
+        current_sort_by=sorting.get("current_sort_by"),
+        current_sort_order=sorting.get("current_sort_order"),
     )
 
 
-@app.route('/manager/<int:cik>')
+@app.route("/manager/<int:cik>")
 def company_detail(cik):
     """Page showing details for a specific manager and their filings"""
     manager = make_api_request(f"/managers/{cik}")
@@ -131,36 +142,36 @@ def company_detail(cik):
     filings = response.get("filings", [])
 
     return render_template(
-        'company.html',
+        "company.html",
         manager=manager if manager else {},
         filings=filings,
         api_url=API_BASE_URL_CLIENT,
     )
 
 
-@app.route('/filing/<accession_number>')
+@app.route("/filing/<accession_number>")
 def filing_by_accession(accession_number):
     """Page showing details for a specific filing by accession number"""
     # First try to get filing by accession number
     filing = make_api_request(f"/filings/{accession_number}")
 
-    return render_template('filing.html', filing=filing)
+    return render_template("filing.html", filing=filing)
 
 
-@app.route('/api/holdings/<accession_number>')
+@app.route("/api/holdings/<accession_number>")
 def get_holdings_data(accession_number):
     """
     API endpoint that DataTables will call directly for data.
     """
     # Get parameters that DataTables sends
-    draw = request.args.get('draw', type=int)
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    search_value = request.args.get('search[value]', '')
+    draw = request.args.get("draw", type=int)
+    start = request.args.get("start", type=int)
+    length = request.args.get("length", type=int)
+    search_value = request.args.get("search[value]", "")
 
     # You will need to map DataTables' column index to your API's sorting parameters
-    order_column_index = request.args.get('order[0][column]', type=int)
-    order_dir = request.args.get('order[0][dir]', 'asc')
+    order_column_index = request.args.get("order[0][column]", type=int)
+    order_dir = request.args.get("order[0][dir]", "asc")
 
     # Construct the query string for your API based on DataTable's parameters
     api_url = f"{API_BASE_URL}/holdings/{accession_number}"
@@ -181,11 +192,11 @@ def get_holdings_data(accession_number):
     return response.json()
 
 
-@app.route('/compare')
+@app.route("/compare")
 def compare():
     """Page for comparing two filings"""
-    accession_prev = request.args.get('prev', '')
-    accession_latest = request.args.get('latest', '')
+    accession_prev = request.args.get("prev", "")
+    accession_latest = request.args.get("latest", "")
 
     comparison_data = None
     filing_swapped = None
@@ -194,13 +205,13 @@ def compare():
         comparison_data = make_api_request(
             f"/analysis/{accession_prev}/{accession_latest}"
         )
-        if comparison_data and comparison_data['metadata'].get('amendment_used'):
-            filing_swapped = comparison_data['metadata']['amendment_used']
+        if comparison_data and comparison_data["metadata"].get("amendment_used"):
+            filing_swapped = comparison_data["metadata"]["amendment_used"]
     else:
         print("No comparison data returned")
 
     return render_template(
-        'compare.html',
+        "compare.html",
         comparison=comparison_data,
         prev_accession=accession_prev,
         latest_accession=accession_latest,
@@ -218,18 +229,18 @@ def latest_company_quarters_comparison(cik):
     comparison_data = make_api_request(f"/company/{cik}/compare/latest")
 
     if comparison_data:
-        latest_accession_number = comparison_data['metadata']['latest_filing'][
-            'accession_number'
+        latest_accession_number = comparison_data["metadata"]["latest_filing"][
+            "accession_number"
         ]
-        previous_accession_number = comparison_data['metadata']['previous_filing'][
-            'accession_number'
+        previous_accession_number = comparison_data["metadata"]["previous_filing"][
+            "accession_number"
         ]
 
-        if comparison_data['metadata'].get('amendment_used'):
-            filing_swapped = comparison_data['metadata']['amendment_used']
+        if comparison_data["metadata"].get("amendment_used"):
+            filing_swapped = comparison_data["metadata"]["amendment_used"]
 
     return render_template(
-        'compare.html',
+        "compare.html",
         comparison=comparison_data,
         prev_accession=previous_accession_number,
         latest_accession=latest_accession_number,
@@ -238,5 +249,5 @@ def latest_company_quarters_comparison(cik):
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True, port=5000)
