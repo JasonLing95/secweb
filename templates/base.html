@@ -22,10 +22,11 @@
                         id="logo-image">
                 </a>
             </div>
+            <a href="{{ url_for('latest_stories_page') }}" class="btn btn-outline-light">Stories</a>
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container my-4">
         {% block content %}{% endblock %}
     </div>
 

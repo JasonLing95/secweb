@@ -35,7 +35,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
 {% if comparison %}
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">CIK {{ comparison.metadata.cik }}</h5>
+        <h5 class="mb-0">CIK {{ comparison.metadata.cik }} {{ comparison.metadata.company_name }}</h5>
     </div>
     <div class="card-body">
         <div class="row">
@@ -112,9 +112,14 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             </tbody>
                         </table>
                     </div>
+                    {% else %}
+                        <div class="mt-3">
+                            <h6>Top 5 New Common Stock</h6>
+                            <p class="text-muted">No new common stock positions were reported in this filing period.</p>
+                        </div>
                     {% endif %}
 
-                    {% if comparison.holdings.closed_positions %}
+                    {% if comparison.holdings.closed_positions.top_5 %}
                     <h6>Top 5 Closed Common Stock</h6>
                     <div class="table-responsive">
                         <table class="table table-striped table-sm">
@@ -139,9 +144,14 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             </tbody>
                         </table>
                     </div>
+                    {% else %}
+                        <div class="mt-3">
+                            <h6>Top 5 Closed Common Stock</h6>
+                            <p class="text-muted">No new closed positions were reported in this filing period.</p>
+                        </div>
                     {% endif %}
 
-                    {% if comparison.holdings.increased_holdings %}
+                    {% if comparison.holdings.increased_holdings.top_5 %}
                     <h6>Top 5 Increased Common Stock</h6>
                     <div class="table-responsive">
                         <table class="table table-striped table-sm">
@@ -179,9 +189,14 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             </tbody>
                         </table>
                     </div>
+                    {% else %}
+                        <div class="mt-3">
+                            <h6>Top 5 Increased Common Stock</h6>
+                            <p class="text-muted">No new increased positions were reported in this filing period.</p>
+                        </div>
                     {% endif %}
 
-                    {% if comparison.holdings.decreased_holdings %}
+                    {% if comparison.holdings.decreased_holdings.top_5 %}
                     <h6>Top 5 Decreased Common Stock</h6>
                     <div class="table-responsive">
                         <table class="table table-striped table-sm">
@@ -217,12 +232,17 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             </tbody>
                         </table>
                     </div>
+                    {% else %}
+                        <div class="mt-3">
+                            <h6>Top 5 Decreased Common Stock</h6>
+                            <p class="text-muted">No new decreased positions were reported in this filing period.</p>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
-    {% endif %}
 
     <!-- Top 5 END  -->
 
@@ -241,7 +261,6 @@ comparison.metadata.previous_filing.multiplication_applied %}
 </div>
 
 <!-- New Holdings Table -->
-{% if comparison.holdings.new_holdings.common_stock %}
 <div class="card mb-4">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#newHoldingsCollapse" role="button" aria-expanded="true"
@@ -254,6 +273,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
     <div class="collapse show" id="newHoldingsCollapse">
         <div class="card-body">
+            {% if comparison.holdings.new_holdings.common_stock %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="newHoldingsTable">
                     <thead class="table-light">
@@ -277,12 +297,13 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="text-muted">No new common stock positions were reported in this filing period.</p>
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
-{% if comparison.holdings.new_holdings.other_securities %}
 <div class="card mb-4">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#newHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -295,6 +316,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
     <div class="collapse show" id="newHoldingsOtherCollapse">
         <div class="card-body">
+            {% if comparison.holdings.new_holdings.other_securities %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="newHoldingsOtherTable">
                     <thead class="table-light">
@@ -318,13 +340,14 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="text-muted">No new other security positions were reported in this filing period.</p>
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
 <!-- Closed Positions Table -->
-{% if comparison.holdings.closed_positions.common_stock %}
 <div class="card mb-4">
     <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#closedPositionsCollapse" role="button" aria-expanded="true"
@@ -337,6 +360,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
     <div class="collapse show" id="closedPositionsCollapse">
         <div class="card-body">
+            {% if comparison.holdings.closed_positions.common_stock %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="closedPositionsTable">
                     <thead class="table-light">
@@ -361,12 +385,13 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="text-muted">No common stock positions were closed in this filing period.</p>
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
-{% if comparison.holdings.closed_positions.other_securities %}
 <div class="card mb-4">
     <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#closedPositionsOtherCollapse" role="button" aria-expanded="true"
@@ -379,6 +404,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
     <div class="collapse show" id="closedPositionsOtherCollapse">
         <div class="card-body">
+            {% if comparison.holdings.closed_positions.other_securities %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="closedPositionsOtherTable">
                     <thead class="table-light">
@@ -403,13 +429,14 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="text-muted">No other security positions were closed in this filing period.</p>
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
 <!-- Increased Holdings Table -->
-{% if comparison.holdings.increased_holdings.common_stock %}
 <div class="card mb-4">
     <div class="card-header bg-info text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#increasedHoldingsCollapse" role="button" aria-expanded="true"
@@ -422,6 +449,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
     <div class="collapse show" id="increasedHoldingsCollapse">
         <div class="card-body">
+            {% if comparison.holdings.increased_holdings.common_stock %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="increasedHoldingsTable">
                     <thead class="table-light">
@@ -456,12 +484,13 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="text-muted">No common stock positions were increased in this filing period.</p>
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
-{% if comparison.holdings.increased_holdings.other_securities %}
 <div class="card mb-4">
     <div class="card-header bg-info text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#increasedHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -474,6 +503,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
     <div class="collapse show" id="increasedHoldingsOtherCollapse">
         <div class="card-body">
+            {% if comparison.holdings.increased_holdings.other_securities %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="increasedHoldingsOtherTable">
                     <thead class="table-light">
@@ -508,13 +538,14 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="text-muted">No other security positions were increased in this filing period.</p>
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
 <!-- Decreased Holdings Table -->
-{% if comparison.holdings.decreased_holdings.common_stock %}
 <div class="card mb-4">
     <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#decreasedHoldingsCollapse" role="button" aria-expanded="true"
@@ -527,6 +558,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
     <div class="collapse show" id="decreasedHoldingsCollapse">
         <div class="card-body">
+            {% if comparison.holdings.decreased_holdings.common_stock %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="decreasedHoldingsTable">
                     <thead class="table-light">
@@ -561,12 +593,13 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="text-muted">No common stock positions were decreased in this filing period.</p>
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
-{% if comparison.holdings.decreased_holdings.other_securities %}
 <div class="card mb-4">
     <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#decreasedHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -579,6 +612,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
     <div class="collapse show" id="decreasedHoldingsOtherCollapse">
         <div class="card-body">
+            {% if comparison.holdings.decreased_holdings.other_securities %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="decreasedHoldingsOtherTable">
                     <thead class="table-light">
@@ -613,13 +647,14 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="text-muted">No other security positions were decreased in this filing period.</p>
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
 <!-- Common Holdings Table -->
-{% if comparison.holdings.common_holdings.common_stock %}
 <div class="card mb-4">
     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#commonHoldingsCollapse" role="button" aria-expanded="true"
@@ -632,6 +667,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
     <div class="collapse show" id="commonHoldingsCollapse">
         <div class="card-body">
+            {% if comparison.holdings.common_holdings.common_stock %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="commonHoldingsTable">
                     <thead class="table-light">
@@ -664,14 +700,15 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="text-muted">No common stock positions were left unchanged in this filing period.</p>
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
 
 <!-- Common Holdings Table -->
-{% if comparison.holdings.common_holdings.other_securities %}
 <div class="card mb-4">
     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#commonHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -684,6 +721,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
     <div class="collapse show" id="commonHoldingsOtherCollapse">
         <div class="card-body">
+            {% if comparison.holdings.common_holdings.other_securities %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="commonHoldingsOtherTable">
                     <thead class="table-light">
@@ -716,12 +754,14 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="text-muted">No other security positions were left unchanged in this filing period.</p>
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
-{% elif prev_accession and latest_accession %}
+{% elif comparison.metadata.previous_filing.accession_number and comparison.metadata.latest_filing.accession_number %}
 <div class="alert alert-warning">
     No comparison data found for the provided accession numbers. Currently, comparison is limited to filings within the
     database. API fetching of filings outside the database is not supported yet.

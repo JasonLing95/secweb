@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+    /* Custom styles for the latest stories page */
+    .story-list-item {
+        transition: background-color 0.2s ease-in-out;
+        text-decoration: none;
+        color: inherit;
+        /* Make sure the item has a defined position context for the headlines */
+        position: relative;
+        min-height: 100px; /* Give space for content to rotate */
+    }
+
+    .story-list-item:hover {
+        background-color: #f8f9fa; /* A light grey on hover */
+        color: inherit;
+    }
+
+    .company-name {
+        font-weight: bold;
+        color: #0056b3;
+        font-size: 1.1rem;
+    }
+
+    .filing-details {
+        font-size: 0.9rem;
+        color: #6c757d; /* Muted text color */
+    }
+
+    /* Container for the rotating headlines */
+    .story-headlines {
+        margin-top: 0.5rem;
+    }
+
+    /* Individual headline item */
+    .story-headline-item {
+        font-style: italic;
+        color: #343a40;
+        margin-bottom: 0;
+        /* Fade transition */
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+        /* Position them on top of each other */
+        position: absolute;
+        width: calc(100% - 2.5rem); /* Adjust width to fit inside the list item padding */
+    }
+
+    .story-headline-item.active {
+        /* Make the active one visible */
+        opacity: 1;
+        position: relative; /* Take up space in the document flow */
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container" id="latest-stories-container">
+    <div class="pb-3 mb-4 border-bottom">
+        <h1 class="display-5">Latest Filing Stories</h1>
+        <p class="lead">Showing recent filings with significant portfolio changes.</p>
+    </div>
+
+    <!-- Loading spinner shown while data is being fetched -->
+    <div id="loading-spinner" class="d-flex justify-content-center align-items-center" style="height: 50vh;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Error message display -->
+    <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+
+    <!-- Main content area for story list, hidden until data is loaded -->
+    <div id="stories-list" class="list-group">
+        <!-- Story items will be inserted here by JavaScript -->
+    </div>
+
+    <!-- PAGINATION CONTROLS -->
+    <nav aria-label="Page navigation" id="pagination-nav" class="d-none">
+        <ul class="pagination justify-content-center mt-4">
+            <li class="page-item disabled" id="prev-page-item">
+                <a class="page-link" href="#" id="prev-page-btn">Previous</a>
+            </li>
+            <li class="page-item disabled" id="next-page-item">
+                <a class="page-link" href="#" id="next-page-btn">Next</a>
+            </li>
+        </ul>
+    </nav>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const API_HOST = "{{ api_url }}";
+    document.addEventListener('DOMContentLoaded', function () {
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const storiesList = document.getElementById('stories-list');
+        const errorMessage = document.getElementById('error-message');
+        const paginationNav = document.getElementById('pagination-nav');
+        const prevPageItem = document.getElementById('prev-page-item');
+        const nextPageItem = document.getElementById('next-page-item');
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+        
+        let storyInterval; // To hold our interval timer
+        let currentPage = 1;
+        const limit = 20; // Fetch more initially to have enough to filter from
+        let isLoading = false;
+
+        // --- Helper Functions ---
+        const formatDate = (dateString) => {
+            const date = new Date(dateString + 'T00:00:00Z'); // Treat as UTC
+            return date.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+        };
+        const formatNumber = (num) => num ? num.toLocaleString('en-US') : 'N/A';
+        const formatPercent = (num) => num ? `${num.toFixed(2)}%` : 'N/A';
+
+        // --- Core Functions ---
+
+        // Fetches the latest stories
+        function fetchStories(page) {
+            if (isLoading) return;
+            isLoading = true;
+            if (storyInterval) clearInterval(storyInterval);
+
+            loadingSpinner.classList.remove('d-none');
+            // storiesList.classList.add('d-none');
+            storiesList.innerHTML = ''; // Clear previous results
+            errorMessage.classList.add('d-none');
+            paginationNav.classList.add('d-none'); // Hide pagination while loading
+            prevPageItem.classList.add('disabled');
+            nextPageItem.classList.add('disabled');
+
+            const offset = (page - 1) * limit;
+
+            fetch(`${API_HOST}/stories/latest/?limit=${limit}&offset=${offset}`)
+                .then(response => {
+                    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+                    return response.json();
+                })
+                .then(data => {
+                    renderStories(data.stories);
+                    updatePaginationControls(page, data.stories.length);
+                    // storiesList.classList.remove('d-none');
+                    startCarousel(); // Start the rotation after rendering
+                    paginationNav.classList.remove('d-none');
+                })
+                .catch(handleError)
+                .finally(() => {
+                    loadingSpinner.classList.add('d-none');
+                    isLoading = false;
+                });
+        }
+
+        // Renders the story cards to the list
+        function renderStories(stories) {
+            let listHtml = '';
+            stories.forEach(story => {
+                const headlines = [];
+
+                // Collect all available headlines for a given story
+                if (story.top_new_position) {
+                    const pos = story.top_new_position;
+                    headlines.push(`<p class="story-headline-item"><strong>New Position:</strong> ${pos.issuer_name} (${formatNumber(pos.shares_or_principal_amount)} shares)</p>`);
+                }
+                if (story.top_closed_position) {
+                    const pos = story.top_closed_position;
+                    headlines.push(`<p class="story-headline-item"><strong>Closed Position:</strong> ${pos.issuer_name} (${formatNumber(pos.shares_or_principal_amount)} shares)</p>`);
+                }
+                if (story.top_increased_position) {
+                    const pos = story.top_increased_position;
+                    headlines.push(`<p class="story-headline-item" style="color: #28a745;"><strong>Increased Position:</strong> ${pos.issuer_name} (+${formatNumber(pos.percent_change)}%)</p>`);
+                }
+                if (story.top_decreased_position) {
+                    const pos = story.top_decreased_position;
+                    headlines.push(`<p class="story-headline-item" style="color: #dc3545;"><strong>Decreased Position:</strong> ${pos.issuer_name} (${formatNumber(pos.percent_change)}%)</p>`);
+                }
+
+                // If there are no significant changes, skip this filing
+                if (headlines.length === 0) return;
+                
+                // Add 'active' class to the first headline so it's visible initially
+                headlines[0] = headlines[0].replace('class="story-headline-item"', 'class="story-headline-item active"');
+
+                const reportingDate = new Date(story.reporting_period + 'T00:00:00Z');
+                const quarter = Math.floor(reportingDate.getUTCMonth() / 3) + 1;
+                const year = reportingDate.getUTCFullYear();
+
+                listHtml += `
+                    <a href="/company/latest/${story.cik}" target="_blank" class="list-group-item list-group-item-action story-list-item flex-column align-items-start" data-story-count="${headlines.length}">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1 company-name">${story.company_name}</h5>
+                            <small class="filing-details">Q${quarter} ${year} Report</small>
+                        </div>
+                        <div class="story-headlines">
+                            ${headlines.join('')}
+                        </div>
+                        <small class="filing-details">Filed on ${formatDate(story.filing_date)}</small>
+                    </a>
+                `;
+            });
+
+            if (!listHtml) {
+                 storiesList.innerHTML = '<p class="text-muted text-center col-12">No recent filings with significant changes found.</p>';
+            } else {
+                 storiesList.innerHTML = listHtml;
+            }
+        }
+
+        function updatePaginationControls(page, storiesCount) {
+            // Enable/disable 'Previous' button
+            if (page > 1) {
+                prevPageItem.classList.remove('disabled');
+            } else {
+                prevPageItem.classList.add('disabled');
+            }
+            // Enable/disable 'Next' button if a full page of results was returned
+            if (storiesCount === limit) {
+                nextPageItem.classList.remove('disabled');
+            } else {
+                nextPageItem.classList.add('disabled');
+            }
+        }
+
+        // Starts the interval to rotate through stories
+        function startCarousel() {
+            if (storyInterval) clearInterval(storyInterval); // Clear any existing timer
+
+            storyInterval = setInterval(() => {
+                const storyItems = document.querySelectorAll('.story-list-item');
+                storyItems.forEach(item => {
+                    const storyCount = parseInt(item.dataset.storyCount, 10);
+                    if (storyCount <= 1) return; // Don't rotate if there's only one story
+
+                    const headlines = item.querySelectorAll('.story-headline-item');
+                    let activeIndex = -1;
+                    headlines.forEach((headline, index) => {
+                        if (headline.classList.contains('active')) {
+                            activeIndex = index;
+                        }
+                    });
+
+                    if (activeIndex !== -1) {
+                        headlines[activeIndex].classList.remove('active');
+                        const nextIndex = (activeIndex + 1) % headlines.length;
+                        headlines[nextIndex].classList.add('active');
+                    }
+                });
+            }, 4000); // Rotate every 4 seconds
+        }
+
+        function handleError(error) {
+            console.error('Error fetching latest stories:', error);
+            errorMessage.textContent = `Failed to load latest stories: ${error.message}`;
+            errorMessage.classList.remove('d-none');
+        }
+
+        // --- Event Listeners ---
+        prevPageBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!prevPageItem.classList.contains('disabled') && !isLoading) {
+                currentPage--;
+                fetchStories(currentPage);
+            }
+        });
+
+        nextPageBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!nextPageItem.classList.contains('disabled') && !isLoading) {
+                currentPage++;
+                fetchStories(currentPage);
+            }
+        });
+
+        // --- Initial Load ---
+        fetchStories(currentPage);
+    });
+</script>
+{% endblock %}

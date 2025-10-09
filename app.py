@@ -249,5 +249,16 @@ def latest_company_quarters_comparison(cik):
     )
 
 
+@app.route("/stories/latest")
+def latest_stories_page():
+    """
+    Renders the page that lists the latest filing stories.
+    """
+    return render_template(
+        "latest_stories.html",
+        api_url=API_BASE_URL_CLIENT,
+    )
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True, port=5000)
