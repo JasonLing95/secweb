@@ -117,6 +117,22 @@
         };
         const formatNumber = (num) => num ? num.toLocaleString('en-US') : 'N/A';
         const formatPercent = (num) => num ? `${num.toFixed(2)}%` : 'N/A';
+        
+        const formatAUM = (aum) => {
+            if (!aum || aum < 1_000_000_000) return '';
+            const tln = aum / 1_000_000_000_000;
+            if (tln >= 1) return `(${tln.toFixed(0)}tln AUM)`;
+            const bln = aum / 1_000_000_000;
+            return `(${bln.toFixed(0)}bln AUM)`;
+        };
+
+        const formatShares = (shares) => {
+            if (!shares) return 'N/A';
+            const absShares = Math.abs(shares);
+            if (absShares >= 1_000_000) return `${(absShares / 1_000_000).toFixed(0)}mln`;
+            if (absShares >= 1_000) return `${(absShares / 1_000).toFixed(0)}k`;
+            return absShares.toLocaleString('en-US');
+        };
 
         // --- Core Functions ---
 
@@ -161,22 +177,24 @@
             stories.forEach(story => {
                 const headlines = [];
 
+                const companyInfo = `${story.company_name} ${formatAUM(story.aum)}`;
+
                 // Collect all available headlines for a given story
                 if (story.top_new_position) {
                     const pos = story.top_new_position;
-                    headlines.push(`<p class="story-headline-item"><strong>New Position:</strong> ${pos.issuer_name} (${formatNumber(pos.shares_or_principal_amount)} shares)</p>`);
+                    headlines.push(`<p class="story-headline-item">${companyInfo} takes new stake in ${pos.issuer_name}; Buys ${formatShares(pos.shares_or_principal_amount)} shares at an average price of USD ${Math.round(pos.price_per_share)}/shr</p>`);
                 }
                 if (story.top_closed_position) {
                     const pos = story.top_closed_position;
-                    headlines.push(`<p class="story-headline-item"><strong>Closed Position:</strong> ${pos.issuer_name} (${formatNumber(pos.shares_or_principal_amount)} shares)</p>`);
+                    headlines.push(`<p class="story-headline-item" style="color: #28a745;">${companyInfo} increases stake in ${pos.issuer_name} by ${formatShares(pos.change_in_share)} shares; buys at an average price of USD ${Math.round(pos.price_per_share)}/shr</p>`);
                 }
                 if (story.top_increased_position) {
                     const pos = story.top_increased_position;
-                    headlines.push(`<p class="story-headline-item" style="color: #28a745;"><strong>Increased Position:</strong> ${pos.issuer_name} (+${formatNumber(pos.percent_change)}%)</p>`);
+                    headlines.push(`<p class="story-headline-item" style="color: #dc3545;">${companyInfo} reduces stake in ${pos.issuer_name} by ${formatShares(pos.change_in_share)} shares; sells at an average price of USD ${Math.round(pos.price_per_share)}/shr</p>`);
                 }
                 if (story.top_decreased_position) {
                     const pos = story.top_decreased_position;
-                    headlines.push(`<p class="story-headline-item" style="color: #dc3545;"><strong>Decreased Position:</strong> ${pos.issuer_name} (${formatNumber(pos.percent_change)}%)</p>`);
+                    headlines.push(`<p class="story-headline-item">${companyInfo} exits stake in ${pos.issuer_name}; Sells ${formatShares(pos.shares_or_principal_amount)} shares at an average price of USD ${Math.round(pos.price_per_share)}/shr</p>`);
                 }
 
                 // If there are no significant changes, skip this filing
