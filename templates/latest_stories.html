@@ -107,7 +107,7 @@
         
         let storyInterval; // To hold our interval timer
         let currentPage = 1;
-        const limit = 20; // Fetch more initially to have enough to filter from
+        const limit = 10; // Fetch more initially to have enough to filter from
         let isLoading = false;
 
         // --- Helper Functions ---
@@ -182,19 +182,35 @@
                 // Collect all available headlines for a given story
                 if (story.top_new_position) {
                     const pos = story.top_new_position;
-                    headlines.push(`<p class="story-headline-item">${companyInfo} takes new stake in ${pos.issuer_name}; Buys ${formatShares(pos.shares_or_principal_amount)} shares at an average price of USD ${Math.round(pos.price_per_share)}/shr</p>`);
+                    headlines.push(`<p class="story-headline-item" style="color: #3fa728;">${companyInfo} takes new stake in ${pos.issuer_name} (${pos.cusip})<br>Buys ${formatShares(pos.shares_or_principal_amount)} shares at an average price of $${Math.round(pos.price_per_share)}/shr</p>`);
                 }
                 if (story.top_closed_position) {
                     const pos = story.top_closed_position;
-                    headlines.push(`<p class="story-headline-item" style="color: #28a745;">${companyInfo} increases stake in ${pos.issuer_name} by ${formatShares(pos.change_in_share)} shares; buys at an average price of USD ${Math.round(pos.price_per_share)}/shr</p>`);
+                    headlines.push(`<p class="story-headline-item" style="color: #a7282e;">${companyInfo} exits stake in ${pos.issuer_name} (${pos.cusip})<br>Sells ${formatShares(pos.shares_or_principal_amount)} shares at an average price of $${Math.round(pos.price_per_share)}/shr</p>`);
                 }
                 if (story.top_increased_position) {
                     const pos = story.top_increased_position;
-                    headlines.push(`<p class="story-headline-item" style="color: #dc3545;">${companyInfo} reduces stake in ${pos.issuer_name} by ${formatShares(pos.change_in_share)} shares; sells at an average price of USD ${Math.round(pos.price_per_share)}/shr</p>`);
+                    headlines.push(`<p class="story-headline-item" style="color: #282aa7;">${companyInfo} increases stake in ${pos.issuer_name} (${pos.cusip}) by ${formatShares(pos.change_in_share)} shares<br>Buys at an average price of $${Math.round(pos.price_per_share)}/shr</p>`);
                 }
                 if (story.top_decreased_position) {
                     const pos = story.top_decreased_position;
-                    headlines.push(`<p class="story-headline-item">${companyInfo} exits stake in ${pos.issuer_name}; Sells ${formatShares(pos.shares_or_principal_amount)} shares at an average price of USD ${Math.round(pos.price_per_share)}/shr</p>`);
+                    headlines.push(`<p class="story-headline-item" style="color: #a72874;">${companyInfo} reduces stake in ${pos.issuer_name} (${pos.cusip}) by ${formatShares(pos.change_in_share)} shares<br>Sells at an average price of $${Math.round(pos.price_per_share)}/shr</p>`);
+                }
+                if (story.top_new_other_securities) {
+                    const pos = story.top_new_other_securities;
+                    headlines.push(`<p class="story-headline-item" style="color: #3fa728;">${companyInfo} takes new stake in ${pos.issuer_name} (${pos.cusip})<br>Buys ${formatShares(pos.shares_or_principal_amount)} units at an average price of $${Math.round(pos.price_per_share)}/unit</p>`);
+                }
+                if (story.top_closed_other_securities) {
+                    const pos = story.top_closed_other_securities;
+                    headlines.push(`<p class="story-headline-item" style="color: #a7282e;">${companyInfo} exits stake in ${pos.issuer_name} (${pos.cusip})<br>Sells ${formatShares(pos.shares_or_principal_amount)} units at an average price of $${Math.round(pos.price_per_share)}/unit</p>`);
+                }
+                if (story.top_increased_other_securities) {
+                    const pos = story.top_increased_other_securities;
+                    headlines.push(`<p class="story-headline-item" style="color: #282aa7;">${companyInfo} increases stake in ${pos.issuer_name} (${pos.cusip}) by ${formatShares(pos.change_in_share)} units<br>Buys at an average price of $${Math.round(pos.price_per_share)}/unit</p>`);
+                }
+                if (story.top_decreased_other_securities) {
+                    const pos = story.top_decreased_other_securities;
+                    headlines.push(`<p class="story-headline-item" style="color: #a72874;">${companyInfo} reduces stake in ${pos.issuer_name} (${pos.cusip}) by ${formatShares(pos.change_in_share)} units<br>Sells at an average price of $${Math.round(pos.price_per_share)}/unit</p>`);
                 }
 
                 // If there are no significant changes, skip this filing
