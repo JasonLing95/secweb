@@ -23,15 +23,15 @@ Follow these steps to get the frontend application running locally.
 ### Prerequisites
 
 - Python 3.8+
-- An instance of the [backend API](https://www.google.com/search?q=http://your-api-repo-link-here) must be running.
+- An instance of the [backend API](https://github.com/JasonLing95/secapi) must be running.
 
 ### Installation and Setup
 
 1.  **Clone the repository:**
 
     ```bash
-    git clone <your-repo-url>
-    cd <your-repo-directory>
+    git clone https://github.com/JasonLing95/secweb.git
+    cd secweb
     ```
 
 2.  **Install dependencies:**
