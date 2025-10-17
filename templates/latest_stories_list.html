@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+    /* Custom styles for the news feed page */
+    .story-list-item {
+        transition: background-color 0.2s ease-in-out;
+        text-decoration: none;
+        color: inherit;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .story-list-item:hover {
+        background-color: #f8f9fa; /* A light grey on hover */
+        color: inherit;
+    }
+
+    .story-headline-item {
+        font-style: italic;
+        color: #343a40;
+        margin-bottom: 0.25rem; /* Creates a small space above the filing date */
+        line-height: 1.4;
+    }
+
+    .filing-details {
+        font-size: 0.9rem;
+        color: #6c757d; /* Muted text color */
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container" id="latest-stories-container">
+    <div class="pb-3 mb-4 border-bottom">
+        <h1 class="display-5">News Feed</h1>
+        <p class="lead">A feed of portfolio changes from recent filings.</p>
+    </div>
+
+    <div id="loading-spinner" class="d-flex justify-content-center align-items-center" style="height: 50vh;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+
+    <div id="stories-list" class="list-group">
+        </div>
+
+    <nav aria-label="Page navigation" id="pagination-nav" class="d-none">
+        <ul class="pagination justify-content-center mt-4">
+            <li class="page-item disabled" id="prev-page-item">
+                <a class="page-link" href="#" id="prev-page-btn">Previous</a>
+            </li>
+            <li class="page-item disabled" id="next-page-item">
+                <a class="page-link" href="#" id="next-page-btn">Next</a>
+            </li>
+        </ul>
+    </nav>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const API_HOST = "{{ api_url }}";
+    document.addEventListener('DOMContentLoaded', function () {
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const storiesList = document.getElementById('stories-list');
+        const errorMessage = document.getElementById('error-message');
+        const paginationNav = document.getElementById('pagination-nav');
+        const prevPageItem = document.getElementById('prev-page-item');
+        const nextPageItem = document.getElementById('next-page-item');
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+        
+        let currentPage = 1;
+        const limit = 5; // We can show more items per page in this layout
+        let isLoading = false;
+
+        // --- Helper Functions ---
+        const formatDate = (dateString) => {
+            const date = new Date(dateString + 'T00:00:00Z'); // Treat as UTC
+            return date.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+        };
+        
+        const formatAUM = (aum) => {
+            if (!aum || aum < 1_000_000_000) return '';
+            const bln = aum / 1_000_000_000;
+            if (bln >= 1000) return `(${ (bln / 1000).toFixed(1) }tln AUM)`;
+            return `(${bln.toFixed(0)}bln AUM)`;
+        };
+
+        const formatShares = (shares) => {
+            if (!shares) return 'N/A';
+            const absShares = Math.abs(shares);
+            if (absShares >= 1_000_000) return `${(absShares / 1_000_000).toFixed(1)}mln`;
+            if (absShares >= 1_000) return `${(absShares / 1_000).toFixed(1)}k`;
+            return absShares.toLocaleString('en-US');
+        };
+
+        // --- Core Functions ---
+        function fetchStories(page) {
+            if (isLoading) return;
+            isLoading = true;
+
+            loadingSpinner.classList.remove('d-none');
+            storiesList.innerHTML = '';
+            errorMessage.classList.add('d-none');
+            paginationNav.classList.add('d-none');
+
+            const offset = (page - 1) * limit;
+
+            fetch(`${API_HOST}/stories/latest/?limit=${limit}&offset=${offset}`)
+                .then(response => {
+                    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+                    return response.json();
+                })
+                .then(data => {
+                    renderStories(data.stories);
+                    updatePaginationControls(page, data.total); // Assuming API provides a total count
+                    paginationNav.classList.remove('d-none');
+                })
+                .catch(handleError)
+                .finally(() => {
+                    loadingSpinner.classList.add('d-none');
+                    isLoading = false;
+                });
+        }
+
+        // Renders each individual story headline as a separate list item
+        function renderStories(stories) {
+            let listHtml = '';
+            let storyCount = 0;
+
+            stories.forEach(story => {
+                const companyInfo = `<b>${story.company_name}</b> ${formatAUM(story.aum)}`;
+                const reportingDate = new Date(story.reporting_period + 'T00:00:00Z');
+                const quarter = Math.floor(reportingDate.getUTCMonth() / 3) + 1;
+                const year = reportingDate.getUTCFullYear();
+                const filingDateInfo = `Filed on ${formatDate(story.filing_date)} (Q${quarter} ${year} Report)`;
+
+                const createListItem = (headlineHtml) => {
+                    storyCount++;
+                    return `
+                        <a href="/company/latest/${story.cik}" target="_blank" class="list-group-item list-group-item-action story-list-item">
+                            ${headlineHtml}
+                            <small class="filing-details">${filingDateInfo}</small>
+                        </a>
+                    `;
+                };
+
+                // Generate a list item for each type of significant change
+                if (story.top_new_position) {
+                    const pos = story.top_new_position;
+                    const headline = `<p class="story-headline-item" style="color: #28a745;">${companyInfo} opened a new position in <b>${pos.issuer_name}</b>, buying ${formatShares(pos.shares_or_principal_amount)} shares.</p>`;
+                    listHtml += createListItem(headline);
+                }
+                if (story.top_closed_position) {
+                    const pos = story.top_closed_position;
+                    const headline = `<p class="story-headline-item" style="color: #dc3545;">${companyInfo} sold out of its position in <b>${pos.issuer_name}</b>, selling ${formatShares(pos.shares_or_principal_amount)} shares.</p>`;
+                    listHtml += createListItem(headline);
+                }
+                if (story.top_increased_position) {
+                    const pos = story.top_increased_position;
+                    const headline = `<p class="story-headline-item" style="color: #007bff;">${companyInfo} increased its stake in <b>${pos.issuer_name}</b> by ${formatShares(pos.change_in_share)} shares.</p>`;
+                    listHtml += createListItem(headline);
+                }
+                if (story.top_decreased_position) {
+                    const pos = story.top_decreased_position;
+                    const headline = `<p class="story-headline-item" style="color: #6f42c1;">${companyInfo} decreased its stake in <b>${pos.issuer_name}</b> by ${formatShares(pos.change_in_share)} shares.</p>`;
+                    listHtml += createListItem(headline);
+                }
+            });
+
+            if (storyCount === 0) {
+                 storiesList.innerHTML = '<div class="text-center text-muted p-5">No recent filings with significant changes found.</div>';
+            } else {
+                 storiesList.innerHTML = listHtml;
+            }
+            // Pass the number of rendered items to pagination to know if there's a next page
+            updatePaginationControls(currentPage, storyCount);
+        }
+
+        function updatePaginationControls(page, renderedCount) {
+            prevPageItem.classList.toggle('disabled', page <= 1);
+            nextPageItem.classList.toggle('disabled', renderedCount < limit);
+        }
+
+        function handleError(error) {
+            console.error('Error fetching latest stories:', error);
+            errorMessage.textContent = `Failed to load latest stories: ${error.message}`;
+            errorMessage.classList.remove('d-none');
+        }
+
+        // --- Event Listeners ---
+        prevPageBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!prevPageItem.classList.contains('disabled') && !isLoading) {
+                currentPage--;
+                fetchStories(currentPage);
+            }
+        });
+
+        nextPageBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!nextPageItem.classList.contains('disabled') && !isLoading) {
+                currentPage++;
+                fetchStories(currentPage);
+            }
+        });
+
+        // --- Initial Load ---
+        fetchStories(currentPage);
+    });
+</script>
+{% endblock %}

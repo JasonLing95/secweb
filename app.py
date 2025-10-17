@@ -260,5 +260,16 @@ def latest_stories_page():
     )
 
 
+@app.route("/stories/latest/list")
+def latest_stories_page_list():
+    """
+    Renders the page that lists the latest filing stories.
+    """
+    return render_template(
+        "latest_stories_list.html",
+        api_url=API_BASE_URL_CLIENT,
+    )
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True, port=5000)
