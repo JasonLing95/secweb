@@ -152,14 +152,14 @@
 
             const offset = (page - 1) * limit;
 
-            fetch(`${API_HOST}/stories/latest/?limit=${limit}&offset=${offset}`)
+            fetch(`${API_HOST}/stories/latest/v2/?limit=${limit}&offset=${offset}`)
                 .then(response => {
                     if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
                     return response.json();
                 })
                 .then(data => {
                     renderStories(data.stories);
-                    updatePaginationControls(page, data.stories.length);
+                    updatePaginationControls(page, data.has_next_page);
                     // storiesList.classList.remove('d-none');
                     startCarousel(); // Start the rotation after rendering
                     paginationNav.classList.remove('d-none');
@@ -206,11 +206,11 @@
                 }
                 if (story.top_increased_other_securities) {
                     const pos = story.top_increased_other_securities;
-                    headlines.push(`<p class="story-headline-item" style="color: #282aa7;">${companyInfo} increases stake in ${pos.issuer_name} (${pos.cusip}) by ${formatShares(pos.change_in_share)} units<br>Buys at an average price of $${Math.round(pos.price_per_share)}/unit</p>`);
+                    headlines.push(`<p class="story-headline-item" style="color: #282aa7;">${companyInfo} increases stake in ${pos.issuer_name} (${pos.cusip}) by ${formatShares(pos.change_in_share)} units<br>Buys at an average price of $${Math.round(pos.price_per_unit)}/unit</p>`);
                 }
                 if (story.top_decreased_other_securities) {
                     const pos = story.top_decreased_other_securities;
-                    headlines.push(`<p class="story-headline-item" style="color: #a72874;">${companyInfo} reduces stake in ${pos.issuer_name} (${pos.cusip}) by ${formatShares(pos.change_in_share)} units<br>Sells at an average price of $${Math.round(pos.price_per_share)}/unit</p>`);
+                    headlines.push(`<p class="story-headline-item" style="color: #a72874;">${companyInfo} reduces stake in ${pos.issuer_name} (${pos.cusip}) by ${formatShares(pos.change_in_share)} units<br>Sells at an average price of $${Math.round(pos.price_per_unit)}/unit</p>`);
                 }
 
                 // If there are no significant changes, skip this filing
@@ -244,7 +244,7 @@
             }
         }
 
-        function updatePaginationControls(page, storiesCount) {
+        function updatePaginationControls(page, hasNextPage) {
             // Enable/disable 'Previous' button
             if (page > 1) {
                 prevPageItem.classList.remove('disabled');
@@ -252,7 +252,7 @@
                 prevPageItem.classList.add('disabled');
             }
             // Enable/disable 'Next' button if a full page of results was returned
-            if (storiesCount === limit) {
+            if (hasNextPage) {
                 nextPageItem.classList.remove('disabled');
             } else {
                 nextPageItem.classList.add('disabled');

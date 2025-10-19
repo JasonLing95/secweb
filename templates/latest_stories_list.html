@@ -113,14 +113,14 @@
 
             const offset = (page - 1) * limit;
 
-            fetch(`${API_HOST}/stories/latest/?limit=${limit}&offset=${offset}`)
+            fetch(`${API_HOST}/stories/latest/v2/?limit=${limit}&offset=${offset}`)
                 .then(response => {
                     if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
                     return response.json();
                 })
                 .then(data => {
                     renderStories(data.stories);
-                    updatePaginationControls(page, data.total); // Assuming API provides a total count
+                    updatePaginationControls(page, data.has_next_page); // Assuming API provides a total count
                     paginationNav.classList.remove('d-none');
                 })
                 .catch(handleError)
@@ -184,9 +184,9 @@
             updatePaginationControls(currentPage, storyCount);
         }
 
-        function updatePaginationControls(page, renderedCount) {
+        function updatePaginationControls(page, hasNextPage) {
             prevPageItem.classList.toggle('disabled', page <= 1);
-            nextPageItem.classList.toggle('disabled', renderedCount < limit);
+            nextPageItem.classList.toggle('disabled', !hasNextPage);
         }
 
         function handleError(error) {
