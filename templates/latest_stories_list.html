@@ -76,20 +76,24 @@
         const prevPageBtn = document.getElementById('prev-page-btn');
         const nextPageBtn = document.getElementById('next-page-btn');
         
+        // This 'limit' now refers to the number of *companies*
+        // to fetch activities from, not the number of headlines.
+        // A limit of 5 might return 50-100 headlines.
         let currentPage = 1;
-        const limit = 5; // We can show more items per page in this layout
+        const limit = 2; 
         let isLoading = false;
 
-        // --- Helper Functions ---
+        // --- Helper Functions (Unchanged) ---
         const formatDate = (dateString) => {
             const date = new Date(dateString + 'T00:00:00Z'); // Treat as UTC
             return date.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
         };
         
         const formatAUM = (aum) => {
+            // Check if your new /activity/latest endpoint includes 'aum'
             if (!aum || aum < 1_000_000_000) return '';
             const bln = aum / 1_000_000_000;
-            if (bln >= 1000) return `(${ (bln / 1000).toFixed(1) }tln AUM)`;
+            if (bln >= 1000) return `(${(bln / 1000).toFixed(1)}tln AUM)`;
             return `(${bln.toFixed(0)}bln AUM)`;
         };
 
@@ -101,7 +105,7 @@
             return absShares.toLocaleString('en-US');
         };
 
-        // --- Core Functions ---
+        // --- Core Functions (Updated) ---
         function fetchStories(page) {
             if (isLoading) return;
             isLoading = true;
@@ -113,14 +117,18 @@
 
             const offset = (page - 1) * limit;
 
-            fetch(`${API_HOST}/stories/latest/v2/?limit=${limit}&offset=${offset}`)
+            // *** CHANGED: Point to the new '/activity/latest' endpoint ***
+            fetch(`${API_HOST}/activity/latest/v3/?limit=${limit}&offset=${offset}`)
                 .then(response => {
                     if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
                     return response.json();
                 })
                 .then(data => {
-                    renderStories(data.stories);
-                    updatePaginationControls(page, data.has_next_page); // Assuming API provides a total count
+                    // *** CHANGED: Pass 'data.activities' to render function ***
+                    renderActivities(data.activities);
+                    
+                    // *** CHANGED: Use 'data.has_next_page' directly ***
+                    updatePaginationControls(page, data.has_next_page); 
                     paginationNav.classList.remove('d-none');
                 })
                 .catch(handleError)
@@ -130,60 +138,76 @@
                 });
         }
 
-        // Renders each individual story headline as a separate list item
-        function renderStories(stories) {
+        // *** CHANGED: This function is now much simpler ***
+        // It renders a flat list of activities, not a nested story object
+        function renderActivities(activities) {
             let listHtml = '';
-            let storyCount = 0;
 
-            stories.forEach(story => {
-                const companyInfo = `<b>${story.company_name}</b> ${formatAUM(story.aum)}`;
-                const reportingDate = new Date(story.reporting_period + 'T00:00:00Z');
+            if (activities.length === 0) {
+                 storiesList.innerHTML = '<div class="text-center text-muted p-5">No recent filings with significant changes found.</div>';
+                 return;
+            }
+
+            activities.forEach(activity => {
+                const companyInfo = `<b>${activity.company_name}</b> ${formatAUM(activity.aum)}`;
+                const reportingDate = new Date(activity.reporting_period + 'T00:00:00Z');
                 const quarter = Math.floor(reportingDate.getUTCMonth() / 3) + 1;
                 const year = reportingDate.getUTCFullYear();
-                const filingDateInfo = `Filed on ${formatDate(story.filing_date)} (Q${quarter} ${year} Report)`;
+                const filingDateInfo = `Filed on ${formatDate(activity.filing_date)} (Q${quarter} ${year} Report)`;
 
-                const createListItem = (headlineHtml) => {
-                    storyCount++;
-                    return `
-                        <a href="/company/latest/${story.cik}" target="_blank" class="list-group-item list-group-item-action story-list-item">
-                            ${headlineHtml}
+                let headline = '';
+                let color = '#343a40'; // Default text color
+
+                // Use the 'change_type' field to build the headline
+                switch (activity.change_type) {
+                    case 'new':
+                        color = '#28a745'; // Green
+                        if (activity.is_common_stock) {
+                            headline = `${companyInfo} opened a new position in <b>${activity.issuer_name}</b> (${activity.cusip}), buying ${formatShares(activity.current_shares)} shares at an average price of $${activity.current_price_per_share.toFixed(2)}/share`;
+                        } else {
+                            headline = `${companyInfo} opened a new position in <b>${activity.issuer_name}</b> (${activity.cusip}) (non-common stock), acquiring ${formatShares(activity.current_shares)} units.`;
+                        }
+                        break;
+                    case 'closed':
+                        color = '#dc3545'; // Red
+                        if (activity.is_common_stock) {
+                            headline = `${companyInfo} sold out of its position in <b>${activity.issuer_name}</b> (${activity.cusip}), selling ${formatShares(activity.previous_shares)} shares at an average price of $${activity.previous_price_per_share.toFixed(2)}/share`;
+                        } else {
+                            headline = `${companyInfo} sold out of its position in <b>${activity.issuer_name}</b> (${activity.cusip}) (non-common stock), selling ${formatShares(activity.previous_shares)} units.`;
+                        }
+                        break;
+                    case 'increased':
+                        color = '#007bff'; // Blue
+                        if (activity.is_common_stock) {
+                            headline = `${companyInfo} increased its stake in <b>${activity.issuer_name}</b> (${activity.cusip}) by ${formatShares(activity.change_in_share)} shares; buying at an average price of $${activity.current_price_per_share.toFixed(2)}/share.`;
+                        } else {
+                            headline = `${companyInfo} increased its stake in <b>${activity.issuer_name}</b> (${activity.cusip}) (non-common stock) by ${formatShares(activity.change_in_share)} units.`;
+                        }
+                        break;
+                    case 'decreased':
+                        color = '#FF474C'; // Purple (I changed your light red to the original purple, feel free to change it back)
+                        if (activity.is_common_stock) {
+                            headline = `${companyInfo} decreased its stake in <b>${activity.issuer_name}</b> (${activity.cusip}) by ${formatShares(activity.change_in_share)} shares; selling at an average price of $${activity.current_price_per_share.toFixed(2)}/share.`;
+                        } else {
+                            headline = `${companyInfo} decreased its stake in <b>${activity.issuer_name}</b> (${activity.cusip}) (non-common stock) by ${formatShares(activity.change_in_share)} units.`;
+                        }
+                        break;
+                }
+
+                if (headline) {
+                    listHtml += `
+                        <a href="/company/latest/${activity.cik}" target="_blank" class="list-group-item list-group-item-action story-list-item">
+                            <p class="story-headline-item" style="color: ${color};">${headline}</p>
                             <small class="filing-details">${filingDateInfo}</small>
                         </a>
                     `;
-                };
-
-                // Generate a list item for each type of significant change
-                if (story.top_new_position) {
-                    const pos = story.top_new_position;
-                    const headline = `<p class="story-headline-item" style="color: #28a745;">${companyInfo} opened a new position in <b>${pos.issuer_name}</b>, buying ${formatShares(pos.shares_or_principal_amount)} shares.</p>`;
-                    listHtml += createListItem(headline);
-                }
-                if (story.top_closed_position) {
-                    const pos = story.top_closed_position;
-                    const headline = `<p class="story-headline-item" style="color: #dc3545;">${companyInfo} sold out of its position in <b>${pos.issuer_name}</b>, selling ${formatShares(pos.shares_or_principal_amount)} shares.</p>`;
-                    listHtml += createListItem(headline);
-                }
-                if (story.top_increased_position) {
-                    const pos = story.top_increased_position;
-                    const headline = `<p class="story-headline-item" style="color: #007bff;">${companyInfo} increased its stake in <b>${pos.issuer_name}</b> by ${formatShares(pos.change_in_share)} shares.</p>`;
-                    listHtml += createListItem(headline);
-                }
-                if (story.top_decreased_position) {
-                    const pos = story.top_decreased_position;
-                    const headline = `<p class="story-headline-item" style="color: #6f42c1;">${companyInfo} decreased its stake in <b>${pos.issuer_name}</b> by ${formatShares(pos.change_in_share)} shares.</p>`;
-                    listHtml += createListItem(headline);
                 }
             });
 
-            if (storyCount === 0) {
-                 storiesList.innerHTML = '<div class="text-center text-muted p-5">No recent filings with significant changes found.</div>';
-            } else {
-                 storiesList.innerHTML = listHtml;
-            }
-            // Pass the number of rendered items to pagination to know if there's a next page
-            updatePaginationControls(currentPage, storyCount);
+            storiesList.innerHTML = listHtml;
         }
 
+        // *** CHANGED: Simplified to use the exact 'hasNextPage' boolean from the API ***
         function updatePaginationControls(page, hasNextPage) {
             prevPageItem.classList.toggle('disabled', page <= 1);
             nextPageItem.classList.toggle('disabled', !hasNextPage);
@@ -195,7 +219,7 @@
             errorMessage.classList.remove('d-none');
         }
 
-        // --- Event Listeners ---
+        // --- Event Listeners (Unchanged) ---
         prevPageBtn.addEventListener('click', (e) => {
             e.preventDefault();
             if (!prevPageItem.classList.contains('disabled') && !isLoading) {
