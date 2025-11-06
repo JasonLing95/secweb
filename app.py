@@ -52,7 +52,7 @@ def human_readable_date(timestamp_string):
         # datetime.fromisoformat() is used to parse the timestamp
         dt_object = datetime.fromisoformat(timestamp_string)
         # strftime() is used to format the datetime object into a new string
-        return dt_object.strftime("%B %d, %Y at %I:%M %p")
+        return dt_object.strftime("%B %d, %Y at %H:%M")
     except ValueError:
         return "Invalid Date"
 
@@ -128,6 +128,7 @@ def index():
         per_page=per_page,
         current_sort_by=sorting.get("current_sort_by"),
         current_sort_order=sorting.get("current_sort_order"),
+        api_url=API_BASE_URL_CLIENT,
     )
 
 

@@ -95,6 +95,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                                 <tr>
                                     <th>Issuer Name</th>
                                     <th>CUSIP</th>
+                                    <th>Put/Call</th>
                                     <th>Shares</th>
                                     <th>Value ($)</th>
                                     <th data-type="numeric">Share Price ($)</th>
@@ -108,6 +109,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                                         target="_blank">{{ holding.issuer_name_clean }}</a>
                                     </td>
                                     <td>{{ holding.cusip }}</td>
+                                    <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_latest | format_number }}</td>
                                     <td>${{ holding.total_value_latest | format_number }}</td>
                                     <td>{{ holding.per_share_price_latest }}</td>
@@ -131,6 +133,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                                 <tr>
                                     <th>Issuer Name</th>
                                     <th>CUSIP</th>
+                                    <th>Put/Call</th>
                                     <th>Units</th>
                                     <th>Value ($)</th>
                                 </tr>
@@ -143,6 +146,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                                         target="_blank">{{ holding.issuer_name_clean }}</a>
                                     </td>
                                     <td>{{ holding.cusip }}</td>
+                                    <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_units_latest | format_number }}</td>
                                     <td>${{ holding.total_value_latest | format_number }}</td>
                                 </tr>
@@ -204,6 +208,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <thead>
                                 <tr>
                                     <th>Issuer Name</th>
+                                    <th>Put/Call</th>
                                     <th>Shares</th>
                                     <th>Value ($)</th>
                                     <th data-type="numeric">Share Price ($)</th>
@@ -214,6 +219,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                                 <tr>
                                     <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                             target="_blank">{{holding.issuer_name_clean}}</a></td>
+                                    <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_latest | format_number }}</td>
                                     <td>${{ holding.total_value_latest | format_number }}</td>
                                     <td>{{ holding.per_share_price_latest }}</td>
@@ -236,6 +242,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <thead>
                                 <tr>
                                     <th>Issuer Name</th>
+                                    <th>Put/Call</th>
                                     <th>Shares</th>
                                     <th>Value ($)</th>
                                     <th data-type="numeric">Share Price ($)</th>
@@ -246,6 +253,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                                 <tr>
                                     <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean_prev }} stock price"
                                             target="_blank">{{holding.issuer_name_clean_prev}}</a></td>
+                                    <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_prev | format_number }}</td>
                                     <td>${{ holding.total_value_prev | format_number }}</td>
                                     <td>{{ holding.per_share_price_prev }}</td>
@@ -268,6 +276,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <thead>
                                 <tr>
                                     <th>Issuer Name</th>
+                                    <th>Put/Call</th>
                                     <th data-type="numeric">Previous Shares Amount</th>
                                     <th data-type="numeric">Latest Shares Amount</th>
                                     <th data-type="numeric">Previous Value ($)</th>
@@ -283,6 +292,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                                 <tr>
                                     <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                             target="_blank">{{holding.issuer_name_clean}}</a></td>
+                                    <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                                     <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
                                     <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
@@ -313,6 +323,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <thead>
                                 <tr>
                                     <th>Issuer Name</th>
+                                    <th>Put/Call</th>
                                     <th data-type="numeric">Previous Shares Amount</th>
                                     <th data-type="numeric">Latest Shares Amount</th>
                                     <th data-type="numeric">Previous Value ($)</th>
@@ -328,6 +339,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                                 <tr>
                                     <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                             target="_blank">{{holding.issuer_name_clean}}</a></td>
+                                    <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                                     <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
                                     <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
@@ -391,6 +403,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
+                            <th>Put/Call</th>
                             <th data-type="numeric">Shares Amount (Latest)</th>
                             <th data-type="numeric">Value ($)</th>
                             <th data-type="numeric">Share Price ($)</th>
@@ -401,6 +414,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                         <tr>
                             <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                     target="_blank">{{holding.issuer_name_clean}}</a></td>
+                            <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_latest) | format_number }}</td>
                             <td>{{ holding.per_share_price_latest }}</td>
@@ -434,6 +448,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
+                            <th>Put/Call</th>
                             <th data-type="numeric">Units Amount (Latest)</th>
                             <th data-type="numeric">Value ($)</th>
                             <!-- <th data-type="numeric">Share Price ($)</th> -->
@@ -444,6 +459,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                         <tr>
                             <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                     target="_blank">{{holding.issuer_name_clean}}</a></td>
+                            <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_latest) | format_number }}</td>
                             <!-- <td>{{ holding.per_share_price_latest }}</td> -->
@@ -478,6 +494,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
+                            <th data-type="numeric">Put/Call</th>
                             <th data-type="numeric">Shares Amount (Previous)</th>
                             <th data-type="numeric">Value ($)</th>
                             <th data-type="numeric">Share Price ($)</th>
@@ -489,6 +506,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean_prev }} stock price"
                                     target="_blank">{{
                                     holding.issuer_name_clean_prev }}</a></td>
+                            <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev) | format_number }}</td>
                             <td>{{ holding.per_share_price_prev }}</td>
@@ -522,6 +540,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
+                            <th data-type="numeric">Put/Call</th>
                             <th data-type="numeric">Units Amount (Previous)</th>
                             <th data-type="numeric">Value ($)</th>
                             <!-- <th data-type="numeric">Share Price ($)</th> -->
@@ -533,6 +552,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean_prev }} stock price"
                                     target="_blank">{{
                                     holding.issuer_name_clean_prev }}</a></td>
+                            <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev) | format_number }}</td>
                             <!-- <td>{{ holding.per_share_price_prev }}</td> -->
@@ -567,6 +587,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
+                            <th>Put/Call</th>
                             <th data-type="numeric">Previous Shares Amount</th>
                             <th data-type="numeric">Latest Shares Amount</th>
                             <th data-type="numeric">Previous Value ($)</th>
@@ -583,6 +604,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                     target="_blank">{{
                                     holding.issuer_name_clean }}</a></td>
+                            <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
@@ -621,6 +643,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
+                            <th data-type="string">Put/Call</th>
                             <th data-type="numeric">Previous Units Amount</th>
                             <th data-type="numeric">Latest Units Amount</th>
                             <th data-type="numeric">Previous Value ($)</th>
@@ -637,6 +660,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                     target="_blank">{{
                                     holding.issuer_name_clean }}</a></td>
+                            <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
@@ -676,6 +700,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
+                            <th data-type="string">Put/Call</th>
                             <th data-type="numeric">Previous Shares Amount</th>
                             <th data-type="numeric">Latest Shares Amount</th>
                             <th data-type="numeric">Previous Value ($)</th>
@@ -692,6 +717,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                     target="_blank">{{
                                     holding.issuer_name_clean }}</a></td>
+                            <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
@@ -730,6 +756,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
+                            <th data-type="string">Put/Call</th>
                             <th data-type="numeric">Previous Units Amount</th>
                             <th data-type="numeric">Latest Units Amount</th>
                             <th data-type="numeric">Previous Value ($)</th>
@@ -746,6 +773,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                     target="_blank">{{
                                     holding.issuer_name_clean }}</a></td>
+                            <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
@@ -785,6 +813,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
+                            <th data-type="string">Put/Call</th>
                             <th data-type="numeric">Shares</th>
                             <th data-type="numeric">Value (Previous)</th>
                             <th data-type="numeric">Value (Latest)</th>
@@ -798,6 +827,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                     target="_blank">{{
                                     holding.issuer_name_clean }}</a></td>
+                            <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>${{ (holding.total_value_prev | default(0)) | format_number }}</td>
                             <td {% if holding.total_value_latest> holding.total_value_prev %} class="text-success" {%
@@ -839,6 +869,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <thead class="table-light">
                         <tr>
                             <th data-type="string">Issuer Name</th>
+                            <th data-type="string">Put/Call</th>
                             <th data-type="numeric">Units</th>
                             <th data-type="numeric">Value (Previous)</th>
                             <th data-type="numeric">Value (Latest)</th>
@@ -852,6 +883,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
                                     target="_blank">{{
                                     holding.issuer_name_clean }}</a></td>
+                            <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>${{ (holding.total_value_prev | default(0)) | format_number }}</td>
                             <td {% if holding.total_value_latest> holding.total_value_prev %} class="text-success" {%
