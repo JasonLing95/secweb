@@ -44,12 +44,13 @@
 <div class="table-responsive">
   <table class="table table-striped table-hover table-fixed-layout">
     <colgroup>
-      <col style="width: 30%" />
-      <col style="width: 10%" />
-      <col style="width: 10%" />
-      <col style="width: 15%" />
-      <col style="width: 10%" />
-      <col style="width: 10%" />
+      <col style="width: 25%" />
+      <col style="width: 8%" />  
+      <col style="width: 7%" />  
+      <col style="width: 15%" /> 
+      <col style="width: 10%" /> 
+      <col style="width: 10%" /> 
+      <col style="width: 10%" /> 
       <col style="width: 15%" />
     </colgroup>
     <thead class="table-light">
@@ -57,7 +58,7 @@
         {% set sort_columns = { 'company_name': 'Company Name', 'cik_number':
         'CIK', 'form_type': 'Form Type', 'accession_number': 'Accession Number',
         'filing_date': 'Filing Date', 'period_of_report': 'Reporting Period',
-        'created_at': 'Created At' } %} {% for key, value in
+        'created_at': 'Created At', 'aum': 'AUM' } %} {% for key, value in
         sort_columns.items() %}
         <th>
           {% set new_order = 'desc' if current_sort_by == key and
@@ -105,6 +106,7 @@
         <td>{{ filing.filing_date }}</td>
         <td>{{ filing.period_of_report }}</td>
         <td>{{ filing.created_at | human_date }}</td>
+        <td>{{ filing.aum }}</td>
       </tr>
       {% endfor %}
     </tbody>
