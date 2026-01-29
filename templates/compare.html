@@ -11,28 +11,43 @@
 </div>
 {% endif %}
 
-{% if comparison.metadata.latest_filing.multiplication_applied and
-comparison.metadata.previous_filing.multiplication_applied %}
-<div class="alert alert-info alert-dismissible fade show" role="alert">
-    <i class="fas fa-info-circle me-2"></i>
-    x1000 applied to both the value of latest and previous filings
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-{% elif comparison.metadata.latest_filing.multiplication_applied %}
-<div class="alert alert-info alert-dismissible fade show" role="alert">
-    <i class="fas fa-info-circle me-2"></i>
-    x1000 applied to the value of latest filing
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-{% elif comparison.metadata.previous_filing.multiplication_applied %}
-<div class="alert alert-info alert-dismissible fade show" role="alert">
-    <i class="fas fa-info-circle me-2"></i>
-    x1000 applied to the value of previous filing
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+{% if comparison %}
+    {% if comparison.metadata.latest_filing.multiplication_applied and comparison.metadata.previous_filing.multiplication_applied %}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle me-2"></i>
+        x1000 applied to both the value of latest and previous filings
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% elif comparison.metadata.latest_filing.multiplication_applied %}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle me-2"></i>
+        x1000 applied to the value of latest filing
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% elif comparison.metadata.previous_filing.multiplication_applied %}
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle me-2"></i>
+        x1000 applied to the value of previous filing
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+{% else %}
+<div class="alert alert-warning shadow-sm mt-4" role="alert">
+    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Comparison Unavailable</h4>
+    <p>We could not generate a comparison for this company. This usually happens because:</p>
+    <ul>
+        <li>The company has fewer than 2 filings in our database (a comparison requires at least a previous and current quarter).</li>
+    </ul>
+    <hr>
+    <p class="mb-0">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-dark btn-sm">Return to Home</a>
+    </p>
 </div>
 {% endif %}
 
 {% if comparison %}
+<!-- Top Holdings -->
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0">CIK {{ comparison.metadata.cik }} {{ comparison.metadata.company_name }}</h5>
@@ -104,9 +119,9 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <tbody>
                                 {% for holding in comparison.holdings.top_holdings_by_value %}
                                 <tr>
-                                    <td><a 
-                                        href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                        target="_blank">{{ holding.issuer_name_clean }}</a>
+                                    <td><a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
+                                            {{ holding.issuer_name_clean }}
+                                        </a>
                                     </td>
                                     <td>{{ holding.cusip }}</td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
@@ -141,9 +156,14 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <tbody>
                                 {% for holding in comparison.holdings.top_other_securities_by_value %}
                                 <tr>
-                                    <td><a 
-                                        href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                        target="_blank">{{ holding.issuer_name_clean }}</a>
+                                    <td>
+                                        {% if holding.cusip %}
+                                            <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
+                                                {{ holding.issuer_name_clean }}
+                                            </a>
+                                        {% else %}
+                                            {{ holding.issuer_name_clean }}
+                                        {% endif %}
                                     </td>
                                     <td>{{ holding.cusip }}</td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
@@ -217,8 +237,15 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <tbody>
                                 {% for holding in comparison.holdings.new_holdings.top_5 %}
                                 <tr>
-                                    <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                            target="_blank">{{holding.issuer_name_clean}}</a></td>
+                                    <td>
+                                        {% if holding.cusip %}
+                                            <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
+                                                {{ holding.issuer_name_clean }}
+                                            </a>
+                                        {% else %}
+                                            {{ holding.issuer_name_clean }}
+                                        {% endif %}
+                                    </td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_latest | format_number }}</td>
                                     <td>${{ holding.total_value_latest | format_number }}</td>
@@ -251,8 +278,15 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <tbody>
                                 {% for holding in comparison.holdings.closed_positions.top_5 %}
                                 <tr>
-                                    <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean_prev }} stock price"
-                                            target="_blank">{{holding.issuer_name_clean_prev}}</a></td>
+                                    <td>
+                                        {% if holding.cusip %}
+                                            <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
+                                                {{ holding.issuer_name_clean_prev }}
+                                            </a>
+                                        {% else %}
+                                            {{ holding.issuer_name_clean_prev }}
+                                        {% endif %}
+                                    </td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_prev | format_number }}</td>
                                     <td>${{ holding.total_value_prev | format_number }}</td>
@@ -290,8 +324,15 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <tbody>
                                 {% for holding in comparison.holdings.increased_holdings.top_5 %}
                                 <tr>
-                                    <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                            target="_blank">{{holding.issuer_name_clean}}</a></td>
+                                    <td>
+                                        {% if holding.cusip %}
+                                            <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
+                                                {{ holding.issuer_name_clean }}
+                                            </a>
+                                        {% else %}
+                                            {{ holding.issuer_name_clean }}
+                                        {% endif %}
+                                    </td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                                     <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
@@ -337,8 +378,15 @@ comparison.metadata.previous_filing.multiplication_applied %}
                             <tbody>
                                 {% for holding in comparison.holdings.decreased_holdings.top_5 %}
                                 <tr>
-                                    <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                            target="_blank">{{holding.issuer_name_clean}}</a></td>
+                                    <td>
+                                        {% if holding.cusip %}
+                                            <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
+                                                {{ holding.issuer_name_clean }}
+                                            </a>
+                                        {% else %}
+                                            {{ holding.issuer_name_clean }}
+                                        {% endif %}
+                                    </td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                                     <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
@@ -384,7 +432,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
 </div>
 
-<!-- New Holdings Table -->
+<!-- New Holdings Table (Common) -->
 <div class="card mb-4">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#newHoldingsCollapse" role="button" aria-expanded="true"
@@ -412,8 +460,15 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <tbody>
                         {% for holding in comparison.holdings.new_holdings.common_stock %}
                         <tr>
-                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                    target="_blank">{{holding.issuer_name_clean}}</a></td>
+                            <td>
+                                {% if holding.cusip %}
+                                    <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
+                                        {{ holding.issuer_name_clean }}
+                                    </a>
+                                {% else %}
+                                    {{ holding.issuer_name_clean }}
+                                {% endif %}
+                            </td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_latest) | format_number }}</td>
@@ -430,6 +485,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
 </div>
 
+<!-- New Holdings Table (Other Securities) -->
 <div class="card mb-4">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#newHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -457,8 +513,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <tbody>
                         {% for holding in comparison.holdings.new_holdings.other_securities %}
                         <tr>
-                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                    target="_blank">{{holding.issuer_name_clean}}</a></td>
+                            <td>{{holding.issuer_name_clean}}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_latest) | format_number }}</td>
@@ -475,7 +530,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
 </div>
 
-<!-- Closed Positions Table -->
+<!-- Closed Positions Table (Common) -->
 <div class="card mb-4">
     <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#closedPositionsCollapse" role="button" aria-expanded="true"
@@ -503,9 +558,15 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <tbody>
                         {% for holding in comparison.holdings.closed_positions.common_stock %}
                         <tr>
-                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean_prev }} stock price"
-                                    target="_blank">{{
-                                    holding.issuer_name_clean_prev }}</a></td>
+                            <td>
+                                {% if holding.cusip_prev %}
+                                    <a href="{{ url_for('stock_flow', cusip=holding.cusip_prev) }}" target="_blank">
+                                        {{ holding.issuer_name_clean_prev }}
+                                    </a>
+                                {% else %}
+                                    {{ holding.issuer_name_clean_prev }}
+                                {% endif %}
+                            </td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev) | format_number }}</td>
@@ -522,6 +583,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
 </div>
 
+<!-- Closed Positions Other Securities Table -->
 <div class="card mb-4">
     <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#closedPositionsOtherCollapse" role="button" aria-expanded="true"
@@ -549,9 +611,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <tbody>
                         {% for holding in comparison.holdings.closed_positions.other_securities %}
                         <tr>
-                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean_prev }} stock price"
-                                    target="_blank">{{
-                                    holding.issuer_name_clean_prev }}</a></td>
+                            <td>{{holding.issuer_name_clean_prev }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev) | format_number }}</td>
@@ -568,7 +628,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
 </div>
 
-<!-- Increased Holdings Table -->
+<!-- Increased Holdings Table (Common) -->
 <div class="card mb-4">
     <div class="card-header bg-info text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#increasedHoldingsCollapse" role="button" aria-expanded="true"
@@ -601,9 +661,9 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <tbody>
                         {% for holding in comparison.holdings.increased_holdings.common_stock %}
                         <tr>
-                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                    target="_blank">{{
-                                    holding.issuer_name_clean }}</a></td>
+                            <td><a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
+                                            {{ holding.issuer_name_clean }}
+                                        </a></td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
@@ -625,6 +685,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
 </div>
 
+<!-- Increased Holdings Other Securities Table -->
 <div class="card mb-4">
     <div class="card-header bg-info text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#increasedHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -657,9 +718,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <tbody>
                         {% for holding in comparison.holdings.increased_holdings.other_securities %}
                         <tr>
-                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                    target="_blank">{{
-                                    holding.issuer_name_clean }}</a></td>
+                            <td>{{holding.issuer_name_clean }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
@@ -714,9 +773,9 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <tbody>
                         {% for holding in comparison.holdings.decreased_holdings.common_stock %}
                         <tr>
-                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                    target="_blank">{{
-                                    holding.issuer_name_clean }}</a></td>
+                            <td><a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
+                                            {{ holding.issuer_name_clean }}
+                                        </a></td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
@@ -738,6 +797,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
     </div>
 </div>
 
+<!-- Decreased Holdings Other Securities Table -->
 <div class="card mb-4">
     <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#decreasedHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -770,9 +830,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <tbody>
                         {% for holding in comparison.holdings.decreased_holdings.other_securities %}
                         <tr>
-                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                    target="_blank">{{
-                                    holding.issuer_name_clean }}</a></td>
+                            <td>{{holding.issuer_name_clean }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
@@ -824,9 +882,9 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <tbody>
                         {% for holding in comparison.holdings.common_holdings.common_stock %}
                         <tr>
-                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                    target="_blank">{{
-                                    holding.issuer_name_clean }}</a></td>
+                            <td><a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
+                                            {{ holding.issuer_name_clean }}
+                                        </a></td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>${{ (holding.total_value_prev | default(0)) | format_number }}</td>
@@ -850,7 +908,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
 </div>
 
 
-<!-- Common Holdings Table -->
+<!-- Common Holdings Table (Other Securities) -->
 <div class="card mb-4">
     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#commonHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -880,9 +938,7 @@ comparison.metadata.previous_filing.multiplication_applied %}
                     <tbody>
                         {% for holding in comparison.holdings.common_holdings.other_securities %}
                         <tr>
-                            <td><a href="https://www.google.com/search?q={{ holding.issuer_name_clean }} stock price"
-                                    target="_blank">{{
-                                    holding.issuer_name_clean }}</a></td>
+                            <td>{{holding.issuer_name_clean}}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>${{ (holding.total_value_prev | default(0)) | format_number }}</td>
@@ -903,12 +959,6 @@ comparison.metadata.previous_filing.multiplication_applied %}
             {% endif %}
         </div>
     </div>
-</div>
-
-{% elif comparison.metadata.previous_filing.accession_number and comparison.metadata.latest_filing.accession_number %}
-<div class="alert alert-warning">
-    No comparison data found for the provided accession numbers. Currently, comparison is limited to filings within the
-    database. API fetching of filings outside the database is not supported yet.
 </div>
 {% endif %}
 {% endblock %}

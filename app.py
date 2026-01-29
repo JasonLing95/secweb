@@ -272,5 +272,11 @@ def latest_stories_page_list():
     )
 
 
+@app.route("/flow/<cusip>")
+def stock_flow(cusip):
+    """Page showing net flow chart for a specific CUSIP"""
+    return render_template("flow.html", cusip=cusip, api_url=API_BASE_URL_CLIENT)
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True, port=5000)
