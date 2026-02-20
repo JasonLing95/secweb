@@ -3,48 +3,66 @@
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Institutional Flow Analysis</h1>
         <div>
-            <span class="badge bg-secondary p-2">CUSIP: {{ cusip }}</span>
+            <h1 class="mb-0">Daily Institutional Flow</h1>
+            <p class="text-muted mb-0">Analyzing filing dates to show market impact</p>
+        </div>
+        <div>
+            <span class="badge bg-secondary p-2 fs-6">CUSIP: {{ cusip }}</span>
         </div>
     </div>
 
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Net Buying vs. Selling (Shares)</h5>
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-primary active" onclick="updateChartRange(2)">2 Years</button>
-                <button type="button" class="btn btn-outline-primary" onclick="updateChartRange(5)">5 Years</button>
-                <button type="button" class="btn btn-outline-primary" onclick="updateChartRange(8)">8 Years</button>
-                <button type="button" class="btn btn-outline-primary" onclick="updateChartRange(null)">All Time</button>
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Daily Activity Log</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                <table class="table table-striped table-hover align-middle mb-0" id="flow-table">
+                    <thead class="table-light sticky-top" style="z-index: 1020;">
+                        <tr>
+                            <th class="ps-4">Date</th>
+                            <th class="text-end">Net Change</th>
+                            <th class="text-end text-success">Gross Buying</th>
+                            <th class="text-end text-danger pe-4">Gross Selling</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-center p-3 bg-light">
+                                <button id="btn-load-more" class="btn btn-outline-primary btn-sm w-100" onclick="loadMoreHistory()">
+                                    <i class="fas fa-clock me-1"></i> Load Previous 7 Days
+                                </button>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
+    </div>
+
+    <div class="card shadow-sm mb-5">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Flow Visualization</h5>
+        </div>
         <div class="card-body">
-            <div style="position: relative; height: 60vh; width: 100%;">
-                
+            <div style="position: relative; height: 50vh; width: 100%;">
                 <canvas id="flowChart"></canvas>
-
-                <div id="loading" class="d-flex justify-content-center align-items-center" 
-                     style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255,255,255,0.75); z-index: 10; backdrop-filter: blur(1px);">
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2 text-muted fw-bold">Fetching historical data...</p>
-                    </div>
-                </div>
-
-                <div id="error-message" class="d-none d-flex justify-content-center align-items-center" 
-                     style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255,255,255,0.9); z-index: 20;">
-                    <div class="alert alert-danger shadow-sm">
-                        <i class="fas fa-exclamation-circle me-2"></i> <span id="error-text"></span>
-                    </div>
-                </div>
-
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    @keyframes blinker {
+        50% { opacity: 0; }
+    }
+    .blink {
+        animation: blinker 2s linear infinite;
+    }
+</style>
 {% endblock %}
 
 {% block scripts %}
@@ -53,159 +71,220 @@
 <script>
     const CUSIP = "{{ cusip }}";
     const API_HOST = "{{ api_url }}";
+    
+    let currentDays = 14; 
     let flowChart = null;
+    let isFetching = false;
+    let fullDataset = []; 
 
     document.addEventListener('DOMContentLoaded', () => {
-        fetchData(2);
+        fetchHistory(currentDays);
+        setInterval(updateTodayOnly, 120000); 
     });
 
-    function updateChartRange(years) {
-        const clickedBtn = event.target.closest('button');
-        document.querySelectorAll('.btn-group button').forEach(btn => btn.classList.remove('active'));
-        clickedBtn.classList.add('active');
-        fetchData(years);
+    function loadMoreHistory() {
+        if (isFetching) return;
+        
+        const btn = document.getElementById('btn-load-more');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Loading...';
+        btn.disabled = true;
+
+        fetchHistory(currentDays + 7)
+            .then(() => { currentDays += 7; })
+            .catch((err) => { console.error("Load failed", err); })
+            .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
     }
 
-    async function fetchData(years = null) {
-        const loading = document.getElementById('loading');
-        const errorDiv = document.getElementById('error-message');
-        const errorText = document.getElementById('error-text');
-        
-        // Show loader overlay
-        loading.classList.remove('d-none');
-        errorDiv.classList.add('d-none');
-        
+    async function fetchHistory(daysToFetch) {
+        isFetching = true;
         try {
-            let url = `${API_HOST}/api/v1/flow/${CUSIP}`;
-            if (years) {
-                url += `?years=${years}`;
-            }
-
+            const url = `${API_HOST}/api/v1/flow/daily/${CUSIP}?days=${daysToFetch}`;
             const response = await fetch(url);
-            if (!response.ok) throw new Error("Failed to fetch data");
+            if (!response.ok) throw new Error("Failed to fetch history");
             
             const data = await response.json();
-            
-            // Hide loader
-            loading.classList.add('d-none');
+            fullDataset = data.daily_data || [];
 
-            if (!data.history || data.history.length === 0) {
-                if (flowChart) {
-                    flowChart.destroy();
-                    flowChart = null;
-                }
-                errorText.textContent = "No historical flow data found for this CUSIP.";
-                errorDiv.classList.remove('d-none');
-                return;
-            }
-
-            renderChart(data.history);
-
-        } catch (err) {
-            loading.classList.add('d-none');
-            errorText.textContent = err.message;
-            errorDiv.classList.remove('d-none');
+            renderTable(fullDataset);
+            renderChart(fullDataset);
+        } finally {
+            isFetching = false;
         }
     }
 
-    function renderChart(history) {
-        const ctx = document.getElementById('flowChart').getContext('2d');
+    async function updateTodayOnly() {
+        try {
+            const url = `${API_HOST}/api/v1/flow/daily/${CUSIP}?days=1`;
+            const response = await fetch(url);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            const freshRows = data.daily_data || [];
+            if (freshRows.length === 0) return;
+
+            freshRows.sort((a, b) => new Date(b.date) - new Date(a.date));
+            const latestUpdate = freshRows[0];
+            
+            const existingIndex = fullDataset.findIndex(d => d.date === latestUpdate.date);
+            let dataChanged = false;
+
+            if (existingIndex !== -1) {
+                // Update existing row
+                if (JSON.stringify(fullDataset[existingIndex]) !== JSON.stringify(latestUpdate)) {
+                    fullDataset[existingIndex] = latestUpdate;
+                    dataChanged = true;
+                }
+            } else {
+                // Insert new row
+                fullDataset.push(latestUpdate);
+                dataChanged = true;
+            }
+
+            if (dataChanged) {
+                renderTable(fullDataset);
+                renderChart(fullDataset, existingIndex === -1);
+                
+                // Flash the specific row
+                const rowEl = document.getElementById(`row-${latestUpdate.date}`);
+                if (rowEl) flashRow(rowEl);
+            }
+
+        } catch (err) {
+            console.error("Real-time update failed:", err);
+        }
+    }
+
+    // --- UI HELPERS ---
+
+    function renderTable(data) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
         
-        const labels = history.map(item => item.date);
-        const buyingData = history.map(item => item.gross_buying);
-        const sellingData = history.map(item => -item.gross_selling); 
-        const netData = history.map(item => item.net_change);
+        // Sort: Newest First
+        const sorted = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        sorted.forEach((row) => {
+            const tr = document.createElement('tr');
+            tr.id = `row-${row.date}`; 
+            tr.innerHTML = generateRowHTML(row); 
+            tbody.appendChild(tr);
+        });
+    }
+
+    function generateRowHTML(row) {
+        const netClass = row.net_change > 0 ? 'text-success' : (row.net_change < 0 ? 'text-danger' : 'text-muted');
+        
+        let netSign = '';
+        if (row.net_change > 0) netSign = '+';
+        else if (row.net_change < 0) netSign = '-'; 
+
+        // --- FIXED LOGIC START ---
+        // Calculate "Today" in New York Time (Market Time)
+        const nyDate = new Date().toLocaleString("en-US", {timeZone: "America/New_York"});
+        const nyObj = new Date(nyDate);
+        const year = nyObj.getFullYear();
+        const month = String(nyObj.getMonth() + 1).padStart(2, '0');
+        const day = String(nyObj.getDate()).padStart(2, '0');
+        const todayNY = `${year}-${month}-${day}`;
+
+        let dateDisplay = row.date;
+        
+        // Only show badge if the row matches Today's Date in NY
+        if (row.date === todayNY) {
+            dateDisplay += `
+                <span class="badge bg-success bg-opacity-10 text-success border border-success ms-2 blink" style="font-weight: normal; font-size: 0.7em;">
+                    <i class="fas fa-circle fa-xs me-1"></i>Live • Updates 2m
+                </span>`;
+        }
+        // --- FIXED LOGIC END ---
+
+        return `
+            <td class="ps-4 fw-bold text-secondary text-nowrap">${dateDisplay}</td>
+            <td class="text-end fw-bold ${netClass}">${netSign}${formatNumber(row.net_change)}</td>
+            <td class="text-end text-success">+${formatNumber(row.gross_buying)}</td>
+            <td class="text-end text-danger pe-4">-${formatNumber(row.gross_selling)}</td>
+        `;
+    }
+
+    function flashRow(element) {
+        element.style.transition = "background-color 0.5s";
+        const originalBg = element.style.backgroundColor;
+        element.style.backgroundColor = "#e8f5e9";
+        setTimeout(() => {
+            element.style.backgroundColor = originalBg;
+        }, 1000);
+    }
+
+    function formatNumber(num) {
+        if (num === 0) return "-";
+        const abs = Math.abs(num); 
+        if (abs >= 1e6) return (abs / 1e6).toFixed(2) + 'M';
+        if (abs >= 1e3) return (abs / 1e3).toFixed(1) + 'K';
+        return abs.toLocaleString();
+    }
+
+    function renderChart(data, isNewDay = false) {
+        const ctx = document.getElementById('flowChart').getContext('2d');
+        const sorted = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        const labels = sorted.map(d => d.date);
+        const net = sorted.map(d => d.net_change);
+        const buy = sorted.map(d => d.gross_buying);
+        const sell = sorted.map(d => -d.gross_selling);
 
         if (flowChart) {
-            flowChart.destroy();
-        }
-
-        flowChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Net Change',
-                        data: netData,
-                        type: 'line',
-                        borderColor: '#0d6efd',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        pointRadius: 3,
-                        order: 0
-                    },
-                    {
-                        label: 'Gross Buying',
-                        data: buyingData,
-                        backgroundColor: 'rgba(25, 135, 84, 0.6)',
-                        borderColor: 'rgba(25, 135, 84, 1)',
-                        borderWidth: 1,
-                        order: 1
-                    },
-                    {
-                        label: 'Gross Selling',
-                        data: sellingData,
-                        backgroundColor: 'rgba(220, 53, 69, 0.6)',
-                        borderColor: 'rgba(220, 53, 69, 1)',
-                        borderWidth: 1,
-                        order: 2
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                scales: {
-                    x: {
-                        grid: { display: false }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Shares'
+            flowChart.data.labels = labels;
+            flowChart.data.datasets[0].data = net;
+            flowChart.data.datasets[1].data = buy;
+            flowChart.data.datasets[2].data = sell;
+            flowChart.update(isNewDay ? 'default' : 'none'); 
+        } else {
+            flowChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { 
+                            label: 'Net', 
+                            data: net, 
+                            type: 'line', 
+                            borderColor: '#0d6efd', 
+                            backgroundColor: '#0d6efd', 
+                            tension: 0.3, 
+                            pointRadius: 3, 
+                            order: 0 
                         },
-                        ticks: {
-                            callback: function(value) {
-                                if (Math.abs(value) >= 1000000) return (value/1000000).toFixed(1) + 'M';
-                                if (Math.abs(value) >= 1000) return (value/1000).toFixed(0) + 'K';
-                                return value;
-                            }
+                        { 
+                            label: 'Buy', 
+                            data: buy, 
+                            backgroundColor: 'rgba(25, 135, 84, 0.7)', 
+                            hoverBackgroundColor: 'rgba(25, 135, 84, 1.0)',
+                            order: 1 
+                        },
+                        { 
+                            label: 'Sell', 
+                            data: sell, 
+                            backgroundColor: 'rgba(220, 53, 69, 0.7)', 
+                            hoverBackgroundColor: 'rgba(220, 53, 69, 1.0)',
+                            order: 2 
                         }
-                    }
+                    ]
                 },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-
-                                const rawValue = context.raw;
-
-                                if (context.dataset.label === 'Net Change') {
-                                    const formatted = new Intl.NumberFormat('en-US').format(rawValue);
-                                    if (rawValue > 0) {
-                                        label += '+' + formatted;
-                                    } else {
-                                        label += formatted;
-                                    }
-                                } else {
-                                    label += new Intl.NumberFormat('en-US').format(Math.abs(rawValue));
-                                }
-                                return label;
-                            }
-                        }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { ticks: { callback: formatNumber } }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 </script>
 {% endblock %}
