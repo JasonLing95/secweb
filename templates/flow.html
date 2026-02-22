@@ -8,7 +8,7 @@
             <p class="text-muted mb-0">Analyzing filing dates to show market impact</p>
         </div>
         <div>
-            <span class="badge bg-secondary p-2 fs-6">CUSIP: {{ cusip }}</span>
+            <span id="identifier-badge" class="badge bg-secondary p-2 fs-6">{{ cusip }}</span>
         </div>
     </div>
 
@@ -28,7 +28,15 @@
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                        </tbody>
+                        <tr id="loading-indicator">
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <div class="spinner-border text-primary mb-2" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div>Loading flow data...</div>
+                            </td>
+                        </tr>
+                    </tbody>
                     <tfoot>
                         <tr>
                             <td colspan="4" class="text-center p-3 bg-light">
@@ -48,6 +56,12 @@
             <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Flow Visualization</h5>
         </div>
         <div class="card-body">
+            <div id="chart-loading" class="d-flex justify-content-center align-items-center" style="height: 50vh; position: absolute; width: 100%; z-index: 5;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            
             <div style="position: relative; height: 50vh; width: 100%;">
                 <canvas id="flowChart"></canvas>
             </div>
@@ -107,6 +121,18 @@
             if (!response.ok) throw new Error("Failed to fetch history");
             
             const data = await response.json();
+
+            const badge = document.getElementById('identifier-badge');
+            if (badge) {
+                if (data.ticker && data.cusip) {
+                    badge.innerText = `${data.ticker} / ${data.cusip}`;
+                } else if (data.cusip) {
+                    badge.innerText = `CUSIP: ${data.cusip}`;
+                } else {
+                    badge.innerText = `CUSIP: ${CUSIP}`;
+                }
+            }
+
             fullDataset = data.daily_data || [];
 
             renderTable(fullDataset);
@@ -228,6 +254,12 @@
     }
 
     function renderChart(data, isNewDay = false) {
+        const chartLoading = document.getElementById('chart-loading');
+        if (chartLoading) {
+            chartLoading.classList.remove('d-flex');
+            chartLoading.classList.add('d-none');
+        }
+
         const ctx = document.getElementById('flowChart').getContext('2d');
         const sorted = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
 
