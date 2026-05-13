@@ -36,6 +36,10 @@
     <div class="pb-3 mb-4 border-bottom">
         <h1 class="display-5">News Feed</h1>
         <p class="lead">A feed of portfolio changes from recent filings.</p>
+
+        <div class="alert alert-secondary py-2 mb-0 d-inline-block" role="alert" style="font-size: 0.85rem;">
+            <i class="fas fa-info-circle me-1"></i> <strong>Note:</strong> This feed tracks significant movements in <b>Common Stock</b>. Funds exclusively trading ETFs, options, or other non-common securities may not appear here.
+        </div>
     </div>
 
     <div id="loading-spinner" class="d-flex justify-content-center align-items-center" style="height: 50vh;">
@@ -150,6 +154,15 @@
 
             activities.forEach(activity => {
                 const companyInfo = `<b>${activity.company_name}</b> ${formatAUM(activity.aum)}`;
+                
+                const tickerBadge = activity.ticker 
+                    ? `<span class="badge bg-dark rounded-pill ms-1">${activity.ticker}</span>` 
+                    : '';
+                // Render the CUSIP as a lighter, bordered badge
+                const cusipBadge = `<span class="badge bg-light text-secondary border rounded-pill ms-1">${activity.cusip}</span>`;
+                
+                const stockInfo = `<b style="font-size: 1.05em;">${activity.issuer_name}</b>${tickerBadge}${cusipBadge}`;
+                
                 const reportingDate = new Date(activity.reporting_period + 'T00:00:00Z');
                 const quarter = Math.floor(reportingDate.getUTCMonth() / 3) + 1;
                 const year = reportingDate.getUTCFullYear();
@@ -163,33 +176,33 @@
                     case 'new':
                         color = '#28a745'; // Green
                         if (activity.is_common_stock) {
-                            headline = `${companyInfo} opened a new position in <b>${activity.issuer_name}</b> (${activity.cusip}), buying ${formatShares(activity.current_shares)} shares at an average price of $${activity.current_price_per_share.toFixed(2)}/share`;
+                            headline = `${stockInfo} saw a new position opened by ${companyInfo}, which bought ${formatShares(activity.current_shares)} shares at an average price of $${activity.current_price_per_share.toFixed(2)}/share.`;
                         } else {
-                            headline = `${companyInfo} opened a new position in <b>${activity.issuer_name}</b> (${activity.cusip}) (non-common stock), acquiring ${formatShares(activity.current_shares)} units.`;
+                            headline = `${stockInfo} (non-common stock) saw a new position opened by ${companyInfo}, acquiring ${formatShares(activity.current_shares)} units.`;
                         }
                         break;
                     case 'closed':
                         color = '#dc3545'; // Red
                         if (activity.is_common_stock) {
-                            headline = `${companyInfo} sold out of its position in <b>${activity.issuer_name}</b> (${activity.cusip}), selling ${formatShares(activity.previous_shares)} shares at an average price of $${activity.previous_price_per_share.toFixed(2)}/share`;
+                            headline = `${stockInfo} was completely exited by ${companyInfo}, selling ${formatShares(activity.previous_shares)} shares at an average price of $${activity.previous_price_per_share.toFixed(2)}/share.`;
                         } else {
-                            headline = `${companyInfo} sold out of its position in <b>${activity.issuer_name}</b> (${activity.cusip}) (non-common stock), selling ${formatShares(activity.previous_shares)} units.`;
+                            headline = `${stockInfo} (non-common stock) was completely exited by ${companyInfo}, selling ${formatShares(activity.previous_shares)} units.`;
                         }
                         break;
                     case 'increased':
                         color = '#007bff'; // Blue
                         if (activity.is_common_stock) {
-                            headline = `${companyInfo} increased its stake in <b>${activity.issuer_name}</b> (${activity.cusip}) by ${formatShares(activity.change_in_share)} shares; buying at an average price of $${activity.current_price_per_share.toFixed(2)}/share.`;
+                            headline = `${stockInfo} saw its stake increased by ${companyInfo} by ${formatShares(activity.change_in_share)} shares; buying at an average price of $${activity.current_price_per_share.toFixed(2)}/share.`;
                         } else {
-                            headline = `${companyInfo} increased its stake in <b>${activity.issuer_name}</b> (${activity.cusip}) (non-common stock) by ${formatShares(activity.change_in_share)} units.`;
+                            headline = `${stockInfo} (non-common stock) saw its stake increased by ${companyInfo} by ${formatShares(activity.change_in_share)} units.`;
                         }
                         break;
                     case 'decreased':
-                        color = '#FF474C'; // Purple (I changed your light red to the original purple, feel free to change it back)
+                        color = '#FF474C'; // Light Red/Purple
                         if (activity.is_common_stock) {
-                            headline = `${companyInfo} decreased its stake in <b>${activity.issuer_name}</b> (${activity.cusip}) by ${formatShares(activity.change_in_share)} shares; selling at an average price of $${activity.current_price_per_share.toFixed(2)}/share.`;
+                            headline = `${stockInfo} saw its stake reduced by ${companyInfo} by ${formatShares(activity.change_in_share)} shares; selling at an average price of $${activity.current_price_per_share.toFixed(2)}/share.`;
                         } else {
-                            headline = `${companyInfo} decreased its stake in <b>${activity.issuer_name}</b> (${activity.cusip}) (non-common stock) by ${formatShares(activity.change_in_share)} units.`;
+                            headline = `${stockInfo} (non-common stock) saw its stake reduced by ${companyInfo} by ${formatShares(activity.change_in_share)} units.`;
                         }
                         break;
                 }

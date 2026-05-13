@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% macro render_stock(name, ticker, cusip, cusip_for_url=None) %}
+    {% set ticker_badge = '<span class="badge bg-dark rounded-pill ms-1">' ~ ticker ~ '</span>' if ticker else '' %}
+    {% set cusip_badge = '<span class="badge bg-light text-secondary border rounded-pill ms-1">' ~ cusip ~ '</span>' if cusip else '' %}
+    {% set inner_html = '<span style="font-size: 1.05em; font-weight: 600;">' ~ name ~ '</span>' ~ ticker_badge ~ cusip_badge %}
+    
+    {% if cusip_for_url %}
+        <a href="{{ url_for('stock_flow', cusip=cusip_for_url) }}" target="_blank" class="text-decoration-none text-dark">{{ inner_html | safe }}</a>
+    {% else %}
+        {{ inner_html | safe }}
+    {% endif %}
+{% endmacro %}
+
 <h1>Comparison Page</h1>
 
 {% if filing_swapped %}
@@ -47,7 +59,6 @@
 {% endif %}
 
 {% if comparison %}
-<!-- Top Holdings -->
 <div class="card mb-4">
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0">CIK {{ comparison.metadata.cik }} {{ comparison.metadata.company_name }}</h5>
@@ -91,7 +102,6 @@
             <div id="ai-summary-container" class="my-3 p-3 border rounded">Loading AI Summary...</div>
         </div>
 
-        <!-- Top 5 START  -->
         {% if comparison.holdings %}
         <div class="card mb-4">
             <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
@@ -109,7 +119,6 @@
                             <thead>
                                 <tr>
                                     <th>Issuer Name</th>
-                                    <th>CUSIP</th>
                                     <th>Put/Call</th>
                                     <th>Shares</th>
                                     <th>Value ($)</th>
@@ -119,11 +128,7 @@
                             <tbody>
                                 {% for holding in comparison.holdings.top_holdings_by_value %}
                                 <tr>
-                                    <td><a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
-                                            {{ holding.issuer_name_clean }}
-                                        </a>
-                                    </td>
-                                    <td>{{ holding.cusip }}</td>
+                                    <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_latest | format_number }}</td>
                                     <td>${{ holding.total_value_latest | format_number }}</td>
@@ -147,7 +152,6 @@
                             <thead>
                                 <tr>
                                     <th>Issuer Name</th>
-                                    <th>CUSIP</th>
                                     <th>Put/Call</th>
                                     <th>Units</th>
                                     <th>Value ($)</th>
@@ -156,16 +160,7 @@
                             <tbody>
                                 {% for holding in comparison.holdings.top_other_securities_by_value %}
                                 <tr>
-                                    <td>
-                                        {% if holding.cusip %}
-                                            <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
-                                                {{ holding.issuer_name_clean }}
-                                            </a>
-                                        {% else %}
-                                            {{ holding.issuer_name_clean }}
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ holding.cusip }}</td>
+                                    <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_units_latest | format_number }}</td>
                                     <td>${{ holding.total_value_latest | format_number }}</td>
@@ -292,15 +287,7 @@
                             <tbody>
                                 {% for holding in comparison.holdings.new_holdings.top_5 %}
                                 <tr>
-                                    <td>
-                                        {% if holding.cusip %}
-                                            <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
-                                                {{ holding.issuer_name_clean }}
-                                            </a>
-                                        {% else %}
-                                            {{ holding.issuer_name_clean }}
-                                        {% endif %}
-                                    </td>
+                                    <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_latest | format_number }}</td>
                                     <td>${{ holding.total_value_latest | format_number }}</td>
@@ -333,15 +320,7 @@
                             <tbody>
                                 {% for holding in comparison.holdings.closed_positions.top_5 %}
                                 <tr>
-                                    <td>
-                                        {% if holding.cusip %}
-                                            <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
-                                                {{ holding.issuer_name_clean_prev }}
-                                            </a>
-                                        {% else %}
-                                            {{ holding.issuer_name_clean_prev }}
-                                        {% endif %}
-                                    </td>
+                                    <td>{{ render_stock(holding.issuer_name_clean_prev, holding.ticker, holding.cusip_prev, holding.cusip_prev) }}</td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_prev | format_number }}</td>
                                     <td>${{ holding.total_value_prev | format_number }}</td>
@@ -379,15 +358,7 @@
                             <tbody>
                                 {% for holding in comparison.holdings.increased_holdings.top_5 %}
                                 <tr>
-                                    <td>
-                                        {% if holding.cusip %}
-                                            <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
-                                                {{ holding.issuer_name_clean }}
-                                            </a>
-                                        {% else %}
-                                            {{ holding.issuer_name_clean }}
-                                        {% endif %}
-                                    </td>
+                                    <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                                     <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
@@ -395,11 +366,8 @@
                                     <td>{{ (holding.total_value_latest | default(0)) | format_number }}</td>
                                     <td>{{ holding.per_share_price_prev }}</td>
                                     <td>{{ holding.per_share_price_latest }}</td>
-                                    <td class="text-success">+{{ holding.change_in_share | default(0) | format_number
-                                        }}
-                                    </td>
-                                    <td class="text-success">+{{ holding.percent_change | default(0) | safe_round(2) }}%
-                                    </td>
+                                    <td class="text-success">+{{ holding.change_in_share | default(0) | format_number }}</td>
+                                    <td class="text-success">+{{ holding.percent_change | default(0) | safe_round(2) }}%</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -433,15 +401,7 @@
                             <tbody>
                                 {% for holding in comparison.holdings.decreased_holdings.top_5 %}
                                 <tr>
-                                    <td>
-                                        {% if holding.cusip %}
-                                            <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
-                                                {{ holding.issuer_name_clean }}
-                                            </a>
-                                        {% else %}
-                                            {{ holding.issuer_name_clean }}
-                                        {% endif %}
-                                    </td>
+                                    <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                                     <td>{{ holding.put_or_call or 'N/A' }}</td>
                                     <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                                     <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
@@ -449,8 +409,7 @@
                                     <td>{{ (holding.total_value_latest | default(0)) | format_number }}</td>
                                     <td>{{ holding.per_share_price_prev }}</td>
                                     <td>{{ holding.per_share_price_latest }}</td>
-                                    <td class="text-danger">{{ holding.change_in_share | default(0) | format_number }}
-                                    </td>
+                                    <td class="text-danger">{{ holding.change_in_share | default(0) | format_number }}</td>
                                     <td class="text-danger">{{ holding.percent_change | default(0) | round(2) }}%</td>
                                 </tr>
                                 {% endfor %}
@@ -469,8 +428,6 @@
         {% endif %}
     </div>
 
-    <!-- Top 5 END  -->
-
     <div class="row mt-3 mx-1">
         {% for key, value in comparison.metadata.summary.items() %}
             {% if key != 'sector_changes' %}
@@ -487,7 +444,6 @@
     </div>
 </div>
 
-<!-- New Holdings Table (Common) -->
 <div class="card mb-4">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#newHoldingsCollapse" role="button" aria-expanded="true"
@@ -515,15 +471,7 @@
                     <tbody>
                         {% for holding in comparison.holdings.new_holdings.common_stock %}
                         <tr>
-                            <td>
-                                {% if holding.cusip %}
-                                    <a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
-                                        {{ holding.issuer_name_clean }}
-                                    </a>
-                                {% else %}
-                                    {{ holding.issuer_name_clean }}
-                                {% endif %}
-                            </td>
+                            <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_latest) | format_number }}</td>
@@ -540,7 +488,6 @@
     </div>
 </div>
 
-<!-- New Holdings Table (Other Securities) -->
 <div class="card mb-4">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#newHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -562,17 +509,15 @@
                             <th>Put/Call</th>
                             <th data-type="numeric">Units Amount (Latest)</th>
                             <th data-type="numeric">Value ($)</th>
-                            <!-- <th data-type="numeric">Share Price ($)</th> -->
                         </tr>
                     </thead>
                     <tbody>
                         {% for holding in comparison.holdings.new_holdings.other_securities %}
                         <tr>
-                            <td>{{holding.issuer_name_clean}}</td>
+                            <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_latest) | format_number }}</td>
-                            <!-- <td>{{ holding.per_share_price_latest }}</td> -->
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -585,7 +530,6 @@
     </div>
 </div>
 
-<!-- Closed Positions Table (Common) -->
 <div class="card mb-4">
     <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#closedPositionsCollapse" role="button" aria-expanded="true"
@@ -613,15 +557,7 @@
                     <tbody>
                         {% for holding in comparison.holdings.closed_positions.common_stock %}
                         <tr>
-                            <td>
-                                {% if holding.cusip_prev %}
-                                    <a href="{{ url_for('stock_flow', cusip=holding.cusip_prev) }}" target="_blank">
-                                        {{ holding.issuer_name_clean_prev }}
-                                    </a>
-                                {% else %}
-                                    {{ holding.issuer_name_clean_prev }}
-                                {% endif %}
-                            </td>
+                            <td>{{ render_stock(holding.issuer_name_clean_prev, holding.ticker, holding.cusip_prev, holding.cusip_prev) }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev) | format_number }}</td>
@@ -638,7 +574,6 @@
     </div>
 </div>
 
-<!-- Closed Positions Other Securities Table -->
 <div class="card mb-4">
     <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#closedPositionsOtherCollapse" role="button" aria-expanded="true"
@@ -660,17 +595,15 @@
                             <th data-type="numeric">Put/Call</th>
                             <th data-type="numeric">Units Amount (Previous)</th>
                             <th data-type="numeric">Value ($)</th>
-                            <!-- <th data-type="numeric">Share Price ($)</th> -->
                         </tr>
                     </thead>
                     <tbody>
                         {% for holding in comparison.holdings.closed_positions.other_securities %}
                         <tr>
-                            <td>{{holding.issuer_name_clean_prev }}</td>
+                            <td>{{ render_stock(holding.issuer_name_clean_prev, holding.ticker, holding.cusip_prev, holding.cusip_prev) }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev) | format_number }}</td>
-                            <!-- <td>{{ holding.per_share_price_prev }}</td> -->
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -683,7 +616,6 @@
     </div>
 </div>
 
-<!-- Increased Holdings Table (Common) -->
 <div class="card mb-4">
     <div class="card-header bg-info text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#increasedHoldingsCollapse" role="button" aria-expanded="true"
@@ -716,9 +648,7 @@
                     <tbody>
                         {% for holding in comparison.holdings.increased_holdings.common_stock %}
                         <tr>
-                            <td><a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
-                                            {{ holding.issuer_name_clean }}
-                                        </a></td>
+                            <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
@@ -740,7 +670,6 @@
     </div>
 </div>
 
-<!-- Increased Holdings Other Securities Table -->
 <div class="card mb-4">
     <div class="card-header bg-info text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#increasedHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -764,8 +693,6 @@
                             <th data-type="numeric">Latest Units Amount</th>
                             <th data-type="numeric">Previous Value ($)</th>
                             <th data-type="numeric">Latest Value ($)</th>
-                            <!-- <th data-type="numeric">Previous Share Price ($)</th>
-                            <th data-type="numeric">Latest Share Price ($)</th> -->
                             <th data-type="numeric">Change (Units Amount)</th>
                             <th data-type="numeric">% Change (Units Amount)</th>
                         </tr>
@@ -773,14 +700,12 @@
                     <tbody>
                         {% for holding in comparison.holdings.increased_holdings.other_securities %}
                         <tr>
-                            <td>{{holding.issuer_name_clean }}</td>
+                            <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
                             <td>{{ (holding.total_value_latest | default(0)) | format_number }}</td>
-                            <!-- <td>{{ holding.per_share_price_prev }}</td>
-                            <td>{{ holding.per_share_price_latest }}</td> -->
                             <td class="text-success">+{{ holding.change_in_units | default(0) | format_number }}</td>
                             <td class="text-success">+{{ holding.percent_change | default(0) | safe_round(2) }}%</td>
                         </tr>
@@ -795,7 +720,6 @@
     </div>
 </div>
 
-<!-- Decreased Holdings Table -->
 <div class="card mb-4">
     <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#decreasedHoldingsCollapse" role="button" aria-expanded="true"
@@ -828,9 +752,7 @@
                     <tbody>
                         {% for holding in comparison.holdings.decreased_holdings.common_stock %}
                         <tr>
-                            <td><a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
-                                            {{ holding.issuer_name_clean }}
-                                        </a></td>
+                            <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_shares_latest | default(0) | format_number }}</td>
@@ -852,7 +774,6 @@
     </div>
 </div>
 
-<!-- Decreased Holdings Other Securities Table -->
 <div class="card mb-4">
     <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#decreasedHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -876,8 +797,6 @@
                             <th data-type="numeric">Latest Units Amount</th>
                             <th data-type="numeric">Previous Value ($)</th>
                             <th data-type="numeric">Latest Value ($)</th>
-                            <!-- <th data-type="numeric">Previous Share Price ($)</th>
-                            <th data-type="numeric">Latest Share Price ($)</th> -->
                             <th data-type="numeric">Change (Units Amount)</th>
                             <th data-type="numeric">% Change (Units Amount)</th>
                         </tr>
@@ -885,14 +804,12 @@
                     <tbody>
                         {% for holding in comparison.holdings.decreased_holdings.other_securities %}
                         <tr>
-                            <td>{{holding.issuer_name_clean }}</td>
+                            <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>{{ holding.total_units_latest | default(0) | format_number }}</td>
                             <td>{{ (holding.total_value_prev | default(0)) | format_number }}</td>
                             <td>{{ (holding.total_value_latest | default(0)) | format_number }}</td>
-                            <!-- <td>{{ holding.per_share_price_prev }}</td>
-                            <td>{{ holding.per_share_price_latest }}</td> -->
                             <td class="text-danger">{{ holding.change_in_units | default(0) | format_number }}</td>
                             <td class="text-danger">{{ holding.percent_change | default(0) | round(2) }}%</td>
                         </tr>
@@ -907,7 +824,6 @@
     </div>
 </div>
 
-<!-- Common Holdings Table -->
 <div class="card mb-4">
     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#commonHoldingsCollapse" role="button" aria-expanded="true"
@@ -937,9 +853,7 @@
                     <tbody>
                         {% for holding in comparison.holdings.common_holdings.common_stock %}
                         <tr>
-                            <td><a href="{{ url_for('stock_flow', cusip=holding.cusip) }}" target="_blank">
-                                            {{ holding.issuer_name_clean }}
-                                        </a></td>
+                            <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_shares_prev | default(0) | format_number }}</td>
                             <td>${{ (holding.total_value_prev | default(0)) | format_number }}</td>
@@ -963,7 +877,6 @@
 </div>
 
 
-<!-- Common Holdings Table (Other Securities) -->
 <div class="card mb-4">
     <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center"
         data-bs-toggle="collapse" href="#commonHoldingsOtherCollapse" role="button" aria-expanded="true"
@@ -986,14 +899,12 @@
                             <th data-type="numeric">Units</th>
                             <th data-type="numeric">Value (Previous)</th>
                             <th data-type="numeric">Value (Latest)</th>
-                            <!-- <th data-type="numeric">Previous Units Price ($)</th>
-                            <th data-type="numeric">Latest Units Price ($)</th> -->
                         </tr>
                     </thead>
                     <tbody>
                         {% for holding in comparison.holdings.common_holdings.other_securities %}
                         <tr>
-                            <td>{{holding.issuer_name_clean}}</td>
+                            <td>{{ render_stock(holding.issuer_name_clean, holding.ticker, holding.cusip, holding.cusip) }}</td>
                             <td>{{ holding.put_or_call or 'N/A' }}</td>
                             <td>{{ holding.total_units_prev | default(0) | format_number }}</td>
                             <td>${{ (holding.total_value_prev | default(0)) | format_number }}</td>
@@ -1002,8 +913,6 @@
                                     endif %}>
                                     ${{ (holding.total_value_latest | default(0)) | format_number }}
                             </td>
-                            <!-- <td>{{ holding.per_units_price_prev }}</td> -->
-                            <!-- <td>{{ holding.per_units_price_latest }}</td> -->
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -1020,7 +929,6 @@
 
 
 {% block scripts %}
-<!-- Include DataTables -->
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script type="text/javascript" charset="utf8"
@@ -1028,7 +936,6 @@
 <script type="text/javascript" charset="utf8"
     src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-<!-- Include Font Awesome for icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <script>
@@ -1085,9 +992,6 @@
     }
 
     function displayResults(data) {
-        // ... your existing code to create the modal content ...
-
-        // Get the summary and inject it into the modal
         const summaryContainer = document.getElementById('ai-summary-container');
         summaryContainer.innerHTML = 'Loading AI summary...';
 
