@@ -12,6 +12,33 @@
         </div>
     </div>
 
+    <div class="row mb-4" id="summary-cards" style="display: none;">
+        <div class="col-md-6 mb-3 mb-md-0">
+            <div class="card shadow-sm border-0 bg-light">
+                <div class="card-body text-center py-3">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase" style="font-size: 0.8em; letter-spacing: 0.5px;">
+                        30-Day Avg Net Change
+                    </h6>
+                    <h3 class="card-title mb-0 fw-bold" id="avg-30-day">
+                        <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 bg-light">
+                <div class="card-body text-center py-3">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase" style="font-size: 0.8em; letter-spacing: 0.5px;">
+                        60-Day Avg Net Change
+                    </h6>
+                    <h3 class="card-title mb-0 fw-bold" id="avg-60-day">
+                        <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-white">
             <h5 class="mb-0"><i class="fas fa-table me-2"></i>Daily Activity Log</h5>
@@ -93,6 +120,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         fetchHistory(currentDays);
+        fetchAggregates();
         setInterval(updateTodayOnly, 120000); 
     });
 
@@ -173,6 +201,7 @@
             if (dataChanged) {
                 renderTable(fullDataset);
                 renderChart(fullDataset, existingIndex === -1);
+                fetchAggregates();
                 
                 // Flash the specific row
                 const rowEl = document.getElementById(`row-${latestUpdate.date}`);
@@ -181,6 +210,45 @@
 
         } catch (err) {
             console.error("Real-time update failed:", err);
+        }
+    }
+
+    async function fetchAggregates() {
+        try {
+            // Unhide the summary cards row
+            document.getElementById('summary-cards').style.display = 'flex';
+            
+            // Fetch both 30-day and 60-day aggregates concurrently
+            const [res30, res60] = await Promise.all([
+                fetch(`${API_HOST}/api/v1/flow/aggregate/${CUSIP}?days=30`),
+                fetch(`${API_HOST}/api/v1/flow/aggregate/${CUSIP}?days=60`)
+            ]);
+
+            if (!res30.ok || !res60.ok) throw new Error("Failed to fetch aggregate data");
+
+            const data30 = await res30.json();
+            const data60 = await res60.json();
+
+            // Calculate the calendar day average (Total Net Change / Days)
+            const avg30 = data30.net_change / 30;
+            const avg60 = data60.net_change / 60;
+
+            // Helper function to format the number and colors
+            const formatAvgUI = (val) => {
+                if (val === 0) return '-';
+                const sign = val > 0 ? '+' : '-';
+                const colorClass = val > 0 ? 'text-success' : 'text-danger';
+                return `<span class="${colorClass}">${sign}${formatNumber(val)}</span>`;
+            };
+
+            // Render to DOM
+            document.getElementById('avg-30-day').innerHTML = formatAvgUI(avg30);
+            document.getElementById('avg-60-day').innerHTML = formatAvgUI(avg60);
+
+        } catch (err) {
+            console.error("Error fetching aggregate averages:", err);
+            document.getElementById('avg-30-day').innerHTML = '<span class="text-muted">Unavailable</span>';
+            document.getElementById('avg-60-day').innerHTML = '<span class="text-muted">Unavailable</span>';
         }
     }
 
